@@ -2,11 +2,14 @@ import numpy as np
 import math
 _EPS = np.finfo(float).eps * 4.0
 
-# def find_transform_matrix(l1, l2):
-#     ret = np.dot(np.linalg.inv(l1), l2)
-#     return ret
+'''
+def find_transform_matrix(l1, l2):
+    ret = np.dot(np.linalg.inv(l1), l2)
+    return ret
+'''
 
 
+'''
 def find_transform_matrix(l1, l2):
     # P = np.empty([0, 16])
     P = np.empty([0, 13])
@@ -26,7 +29,7 @@ def find_transform_matrix(l1, l2):
     # H /= H[-1]
     H = np.reshape(H, (4,4))
     return H
-
+'''
 
 def quaternion_matrix(quaternion):
     q = np.array(quaternion, dtype=np.float64, copy=True)
@@ -58,7 +61,6 @@ def quaternion_matrix(quaternion):
             [0.0, 0.0, 0.0, 1.0],
         ]
     )
-
 
 
 def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True):
@@ -134,6 +136,7 @@ def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True):
     M /= M[ndims, ndims]
     return M
 
+
 def vector_norm(data, axis=None, out=None):
     data = np.array(data, dtype=np.float64, copy=True)
     if out is None:
@@ -157,16 +160,11 @@ def superimposition_matrix(v0, v1, scale=False, usesvd=True):
     )
 
 
+def L2_dist(pnt1, pnt2):
+    return np.sqrt(sum((pnt1-pnt2)**2))
 
 
 def main():
-    # l1 = np.array([[ 1.,  1.,  1.],
-    #    [ 1.,  2.,  1.],
-    #    [ 1.,  1.,  2.],])
-    # l2 = np.array([[ 2.41421356,  5.73205081,  0.73205081],
-    #    [ 2.76776695,  6.66506351,  0.66506351],
-    #    [ 2.76776695,  5.66506351,  1.66506351]])   
-
     # blk1 points
     l1 = np.array([[0.922949380986978, 0.03988826901495437, - 0.25543931832312905, 1],
                    [0.9020137551534037, -0.8686446763605445, 6.727590088701047, 1],
@@ -180,23 +178,14 @@ def main():
                    [-0.17131868229679376, 1.1000097357483747, -6.152928034818453, 1],
                    [-0.42999441908280667, 0.08113574861038235, -0.3659528471479385, 1]
                   ])
-    # mtx = find_transform_matrix(l1, l2)
-    # mtx = find_transform_matrix(l1, l2)
     mtx = superimposition_matrix(l1.T, l2.T, scale=True)
     print(mtx)
 
     for pnt1, pnt2 in zip(l1, l2):
-        # pnt1 = np.concatenate((pnt1, np.array([1])))
-        # warp_pnt = mtx.dot(pnt1)
         warp_pnt = np.dot(mtx, pnt1)
-        # warp_pnt = (warp_pnt/warp_pnt[-1])[:3]
         warp_pnt = warp_pnt[:3]
         dist = L2_dist(warp_pnt, pnt2[:3])
         print(dist)
-
-
-def L2_dist(pnt1, pnt2):
-    return np.sqrt(sum((pnt1-pnt2)**2))
 
 
 if __name__ == "__main__":

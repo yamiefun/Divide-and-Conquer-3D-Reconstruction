@@ -1,8 +1,8 @@
-import argparse
 import os
 from collections import namedtuple
 import numpy as np
 import random
+import time
 
 # from scipy.spatial import transform
 # from transform import find_transform_matrix
@@ -43,7 +43,7 @@ def ransac_find_camera_transform(used_list, blk1, blk2, thresh):
     n_sample = int(max(3, len(used_list)/10))
     assert len(used_list) >= 3,\
         f"The number of anchors is less than 3, cannot calculate transform matrix."
-    outlier_ratio = 0.1
+    # outlier_ratio = 0.1
     # n_iter = int(np.log(1-0.99)/np.log(1-(1-outlier_ratio)**n_sample))
     n_iter = 10000
     print(f"--------------------------------------")
@@ -51,6 +51,7 @@ def ransac_find_camera_transform(used_list, blk1, blk2, thresh):
     print(f"# of sample points: {n_sample}")
     print(f"# of rounds: {n_iter}")
     print(f"--------------------------------------")
+    time.sleep(4)
     err = 1e6
     mtx = None
     random_range = len(cam1_list)

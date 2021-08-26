@@ -97,7 +97,6 @@ def calculate_cam_err3(mtx, pnt_set1, pnt_set2, thresh):
     return outlier
 
         
-
 def calculate_err_two_matrix(R, t, matched_set, blk1, blk2):
     err = 0
     for pnt_idx in matched_set:
@@ -115,7 +114,3 @@ def calculate_err_two_matrix(R, t, matched_set, blk1, blk2):
     print(f"Error: {err}")
 
     return err
-
-
-
-  
