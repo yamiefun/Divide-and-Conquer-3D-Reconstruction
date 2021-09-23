@@ -168,81 +168,12 @@ def parse_points3d_txt(pnt3d_path):
 def modify_ply(blk1_ply_path, blk2_ply_path, mtx):
     out_path = get_default_block_path(-1)
     out_path = os.path.join(out_path, 'merged_model.ply')
-    copyfile(blk1_ply_path, out_path)
-    coor = [None]*3
-    rgba = [None]*4
-    fout = open(out_path, 'a')
-    fmod = open(f"{get_default_block_path(2)}/mod_model2.ply", "w")
-    with open(blk2_ply_path, "r") as f:
-        lines = f.readlines()
-        header_end = False
-        for line in lines:
-            if "end_header" in line:
-                header_end = True
-                continue
-            if header_end:
-                # coor[0], coor[1], coor[2],\
-                #     _, _, _,\
-                #     rgba[0], rgba[1], rgba[2], rgba[3] = line.split()
-                coor = [None]*3
-                coor[0], coor[1], coor[2], *tmp = line.split()
-                coor = [float(val) for val in coor]
-                coor = np.array(coor)
-                coor = np.concatenate((coor, np.array([1])))
-                warp_coor = mtx.dot(coor)
-                warp_coor = (warp_coor/warp_coor[-1])[:3]
-                coor = [str(val) for val in warp_coor]
-                result = coor + tmp
-                result = " ".join(result)
-                fout.write(f"{result}\n")
-                fmod.write(f"{result}\n")
-    fout.close()
-
-
-def modify_ply_two_matrix(blk1_ply_path, blk2_ply_path, R, t):
-    out_path = get_default_block_path(-1)
-    out_path = os.path.join(out_path, 'merged_model.ply')
-    copyfile(blk1_ply_path, out_path)
-    coor = [None]*3
-    rgba = [None]*4
-    fout = open(out_path, 'a')
-    fmod = open(f"{get_default_block_path(2)}/mod_model2.ply", "w")
-    with open(blk2_ply_path, "r") as f:
-        lines = f.readlines()
-        header_end = False
-        for line in lines:
-            if "end_header" in line:
-                header_end = True
-                continue
-            if header_end:
-                # coor[0], coor[1], coor[2],\
-                #     _, _, _,\
-                #     rgba[0], rgba[1], rgba[2], rgba[3] = line.split()
-                coor = [None]*3
-                coor[0], coor[1], coor[2], *tmp = line.split()
-                coor = [float(val) for val in coor]
-                coor = np.array(coor)
-                coor = np.expand_dims(coor, axis=1)
-                warp_coor = (R@coor) + t
-                warp_coor = warp_coor.T
-                warp_coor = np.squeeze(warp_coor)
-                coor = [str(val) for val in warp_coor]
-                result = coor + tmp
-                result = " ".join(result)
-                fout.write(f"{result}\n")
-                fmod.write(f"{result}\n")
-    fout.close()
-
-
-def modify_ply_third(blk1_ply_path, blk2_ply_path, mtx):
-    out_path = get_default_block_path(-1)
-    out_path = os.path.join(out_path, 'merged_model.ply')
-    copyfile(blk1_ply_path, out_path)
+    fmod = open(f"{get_default_block_path(1)}/mod_model.ply", "w")
+    copyfile(blk2_ply_path, out_path)
     coor = [None]*4
     rgba = [None]*4
     fout = open(out_path, 'a')
-    fmod = open(f"{get_default_block_path(1)}/mod_model2.ply", "w")
-    with open(blk2_ply_path, "r") as f:
+    with open(blk1_ply_path, "r") as f:
         lines = f.readlines()
         header_end = False
         for line in lines:
@@ -256,8 +187,6 @@ def modify_ply_third(blk1_ply_path, blk2_ply_path, mtx):
                 coor = [float(val) for val in coor]
                 coor = np.array(coor)
                 warp_coor = np.dot(mtx, coor)
-                # warp_coor = warp_coor.T
-                # warp_coor = np.squeeze(warp_coor)
                 warp_coor = warp_coor[:3]
                 coor = [str(val) for val in warp_coor]
                 result = coor + tmp
@@ -265,6 +194,7 @@ def modify_ply_third(blk1_ply_path, blk2_ply_path, mtx):
                 fout.write(f"{result}\n")
                 fmod.write(f"{result}\n")
     fout.close()
+    fmod.close()
 
 
 def modify_ply_icp(blk1_ply_path, blk2_ply_path, mtx):
