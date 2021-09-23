@@ -1,16 +1,10 @@
 import os
-from collections import namedtuple
 import numpy as np
 import random
 import time
-
-# from scipy.spatial import transform
-# from transform import find_transform_matrix
 from transform import superimposition_matrix
-# from rigid_transform_3D import rigid_transform_3D
 from utils import utils
 from math_fnc import my_math as mm
-from shutil import copyfile
 
 
 def ransac_find_camera_transform(used_list, blk1, blk2, thresh):
@@ -86,44 +80,10 @@ def ransac_find_camera_transform(used_list, blk1, blk2, thresh):
     return mtx
 
 
-def get_common_anchor(blk1, blk2):
-    return blk1.keys() & blk2.keys()
-
-
-def modify_ply(blk1_ply_path, blk2_ply_path, mtx):
-    out_path = utils.get_default_block_path(-1)
-    out_path = os.path.join(out_path, 'merged_model.ply')
-    copyfile(blk2_ply_path, out_path)
-    coor = [None]*4
-    rgba = [None]*4
-    fout = open(out_path, 'a')
-    with open(blk1_ply_path, "r") as f:
-        lines = f.readlines()
-        header_end = False
-        for line in lines:
-            if "end_header" in line:
-                header_end = True
-                continue
-            if header_end:
-                coor = [None]*4
-                coor[0], coor[1], coor[2], *tmp = line.split()
-                coor[3] = 1
-                coor = [float(val) for val in coor]
-                coor = np.array(coor)
-                warp_coor = np.dot(mtx, coor)
-                warp_coor = warp_coor[:3]
-                coor = [str(val) for val in warp_coor]
-                result = coor + tmp
-                result = " ".join(result)
-                fout.write(f"{result}\n")
-    fout.close()
-
 def main():
     args = utils.parse_args()
     blk1_image_txt_path = os.path.join(args.blk1, f"images.txt")
     blk2_image_txt_path = os.path.join(args.blk2, f"images.txt")
-    # blk1_point3d_path = os.path.join(args.blk1, f"points3D.txt")
-    # blk2_point3d_path = os.path.join(args.blk2, f"points3D.txt")
     blk1_ply_path = os.path.join(args.blk1, f"model.ply")
     blk2_ply_path = os.path.join(args.blk2, f"model.ply")
 
@@ -140,14 +100,9 @@ def main():
     print(f'blk1 has {len(blk1_anchor_2d_info)}, blk2 has {len(blk2_anchor_2d_info)}')
     print(f"Common anchor images number: {len(common_anchor)}")
 
-    # get points3D.txt info
-    # blk1_3d_info = utils.parse_points3d_txt(blk1_point3d_path)
-    # blk2_3d_info = utils.parse_points3d_txt(blk2_point3d_path)
-
     if args.match == "":
         print(f"Start finding anchor image feature points.")
 
-        # matched_anchor_img = []
         used_anchor_img = []
         match_pnt_path = utils.get_default_block_path(-1)
         match_pnt_path = os.path.join(match_pnt_path, 'cam_coor.log')
@@ -163,9 +118,7 @@ def main():
                     f.write(f"{image_name} "+\
                         f"{info1[0]} {info1[1]} {info1[2]} "+\
                         f"{info2[0]} {info2[1]} {info2[2]}\n")
-                # matched_anchor_img.append((image_name))
     
-    # print(f"Found total {len(matched_anchor_img)} matched anchor images.")
     print(f"Use total {len(used_anchor_img)} matched anchor images.")
 
     print(f"Start finding transform matrix.")
@@ -177,7 +130,7 @@ def main():
     print(f"Transformation matrix:\n{transform_mtx}")
 
     print(f"Start writing ply file for the merged model.")
-    modify_ply(blk1_ply_path, blk2_ply_path, transform_mtx)
+    utils.modify_ply(blk1_ply_path, blk2_ply_path, transform_mtx)
 
     log_path = utils.get_default_block_path(-1)
     log_path = os.path.join(log_path, "matchlog.log")
