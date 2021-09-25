@@ -52,7 +52,7 @@ def ransac_find_transform(matched_3d_set, blk1, blk2, thresh):
         #tmp_err = calculate_err_two_matrix(ret_R, ret_t, matched_set, blk1, blk2)
 
         # tmp_mtx = find_transform_matrix(blk1_sample, blk2_sample)
-        tmp_mtx = superimposition_matrix(blk1_mod, blk2_mod)
+        tmp_mtx = superimposition_matrix(blk1_mod, blk2_mod, scale=True)
         # tmp_err = calculate_err(tmp_mtx, matched_set, blk1, blk2)
         tmp_err = mm.calculate_err(tmp_mtx, matched_set, blk1, blk2)
         # print(tmp_err)
