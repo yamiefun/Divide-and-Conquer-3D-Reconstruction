@@ -38,9 +38,9 @@ For convenience, you should create two folders in `test` folder generated in ste
           |_(same content as blk1)
 ```
 
-Usage:`$ python3 merge_camera.py`
+Usage:`$ python3 merge_camera.py` or `$ python3 merge_model.py`
 
-This code will calculate the transformation matrix between block1 and block2, then align block2 with block1 by multiply all 3D points in block by the transformation matrix. A file called `merged_model.ply` will be generated, which is the result of merging the two sub-model.
+This code will calculate the transformation matrix between block1 and block2, then align block2 with block1 by multiply all 3D points in block by the transformation matrix. A `ply` file called `merged_model_cam.ply` or `merged_model_pnt.ply` will be generated, which is the result of merging the two sub-model.
 
 ## Output Explanation
 ### cam_coor.log
