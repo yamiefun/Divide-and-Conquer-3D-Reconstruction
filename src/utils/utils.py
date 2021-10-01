@@ -4,18 +4,19 @@ from collections import namedtuple
 from shutil import copyfile
 import numpy as np
 from math_fnc import my_math as mm
-from scipy.spatial.transform import Rotation 
+from scipy.spatial.transform import Rotation
+
 
 def get_default_block_path(blk):
     """
-    Generate path for log files. The logs should be put in separate folders, 
+    Generate path for log files. The logs should be put in separate folders,
     named 'blk' and a number behind, ex, 'blk1', 'blk2', etc. All of them
     should be placed under 'test' folder.
     When 'blk' is -1, this function will return where 'src' is.
 
     Args:
         blk (int): The integer behind 'blk' in the folder name.
-    
+
     Returns:
         string: Absolute path to the log folders.
     """
@@ -54,7 +55,7 @@ def modify_point_format(pnt):
         Args:
             pnt (numpy array): with shape (N, 3), where N means the number
                 of points.
-        
+
         Returns:
             ret (numpy array): with shape (4, N) where all elements in the
                 4th row are 1.
@@ -69,8 +70,9 @@ def modify_point_format(pnt):
 
 def parse_images_txt(image_pth):
     """
-        This function will extract useful information in `images.txt`, including
-        anchor image name, 2d points info, corresponding 3d points id.
+        This function will extract useful information in `images.txt`,
+        including anchor image name, 2d points info, corresponding 3d
+        points id.
 
         The format in images.txt is:
             # Image list with two lines of data per image:
@@ -94,8 +96,8 @@ def parse_images_txt(image_pth):
             image_pth (str): Path to 'images.txt' file.
 
         Returns:
-            ret (dict): Key is the NAME in `images.txt`, value is other information
-                in `images.txt` except NAME.
+            ret (dict): Key is the NAME in `images.txt`, value is other
+            information in `images.txt` except NAME.
     """
     find_anchor = False
     AnchorImg = namedtuple(
@@ -118,7 +120,7 @@ def parse_images_txt(image_pth):
                 pnt_2d = [float(val) for val in pnt_2d]
                 useful_2d = []
                 for i in range(2, len(pnt_2d), 3):
-                    if pnt_2d[i] >= 0: 
+                    if pnt_2d[i] >= 0:
                         # not -1, means this 2d point can map to 3d
                         new_pnt_2d = Point2D(
                             pnt_2d[i-2], pnt_2d[i-1], int(pnt_2d[i]))
@@ -131,7 +133,7 @@ def parse_images_txt(image_pth):
                 # with open(anchor_pth, "a") as fout:
                 #     fout.write(line)
 
-            #if "anchor/2453" in line or "anchor/0222" in line:
+            # if "anchor/2453" in line or "anchor/0222" in line:
             if "anchor" in line:
                 find_anchor = True
                 img_id, Q[0], Q[1], Q[2], Q[3],\
@@ -165,9 +167,9 @@ def parse_points3d_txt(pnt3d_path):
     return ret
 
 
-def modify_ply(blk1_ply_path, blk2_ply_path, mtx):
+def modify_ply(blk1_ply_path, blk2_ply_path, mtx, out_name):
     out_path = get_default_block_path(-1)
-    out_path = os.path.join(out_path, 'merged_model.ply')
+    out_path = os.path.join(out_path, f'{out_name}.ply')
     fmod = open(f"{get_default_block_path(1)}/mod_model.ply", "w")
     copyfile(blk2_ply_path, out_path)
     coor = [None]*4
@@ -259,7 +261,7 @@ def log_inliers(mtx, match_list, blk1, blk2, log_path, thresh):
     outl = []
     inlier, outlier = 0, 0
     name_list = []
-    
+
     # Extract camera position
     for image_name in match_list:
         name_list.append(image_name)

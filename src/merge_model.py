@@ -44,12 +44,13 @@ def ransac_find_transform(matched_3d_set, blk1, blk2, thresh):
                     continue
                 blk1_sample.append(blk1[pnt_idx[0]].coor)
                 blk2_sample.append(blk2[pnt_idx[1]].coor)
-        
+
         blk1_mod = utils.modify_point_format(blk1_sample)
         blk2_mod = utils.modify_point_format(blk2_sample)
 
         # ret_R, ret_t = rigid_transform_3D(blk1_mod, blk2_mod)
-        #tmp_err = calculate_err_two_matrix(ret_R, ret_t, matched_set, blk1, blk2)
+        # tmp_err = calculate_err_two_matrix(
+        #   ret_R, ret_t, matched_set, blk1, blk2)
 
         # tmp_mtx = find_transform_matrix(blk1_sample, blk2_sample)
         tmp_mtx = superimposition_matrix(blk1_mod, blk2_mod, scale=True)
@@ -86,11 +87,12 @@ def main():
 
     assert len(blk1_anchor_2d_info) == len(blk2_anchor_2d_info), \
         ('Anchor image number are not the same in two image set',
-        f'blk1 has {len(blk1_anchor_2d_info)}, blk2 has {len(blk2_anchor_2d_info)}')
+         f'blk1 has {len(blk1_anchor_2d_info)}, '
+         f'blk2 has {len(blk2_anchor_2d_info)}')
 
     if args.match == "":
         print(f"Start finding anchor image feature points.")
-        matched_3d_set = [] # save the match of 3d point id in two set
+        matched_3d_set = []  # save the match of 3d point id in two set
         match_pnt_path = utils.get_default_block_path(-1)
         match_pnt_path = os.path.join(match_pnt_path, 'matchPoints.txt')
         with open(match_pnt_path, "w") as f:
@@ -102,8 +104,10 @@ def main():
                 for pnt2d in image1_info.Pnt2D:
                     for target in image2_info.Pnt2D:
                         if pnt2d.x == target.x and pnt2d.y == target.y:
-                            matched_3d_set.append((pnt2d.Pnt3DID, target.Pnt3DID))
-                            f.write(f"{pnt2d.x} {pnt2d.y} {pnt2d.Pnt3DID} {target.Pnt3DID}\n")
+                            matched_3d_set.append((pnt2d.Pnt3DID,
+                                                   target.Pnt3DID))
+                            f.write(f"{pnt2d.x} {pnt2d.y} {pnt2d.Pnt3DID} "
+                                    f"{target.Pnt3DID}\n")
                             break
     else:
         print(f"Load matched anchor image feature points from file.")
@@ -123,7 +127,8 @@ def main():
     print(f"Transformation matrix:\n{transform_mtx}")
 
     print(f"Start writing ply file for the merged model.")
-    utils.modify_ply(blk1_ply_path, blk2_ply_path, transform_mtx)
+    utils.modify_ply(blk1_ply_path, blk2_ply_path, transform_mtx,
+                     f"merge_model_by_pnt")
 
 
 if __name__ == "__main__":
