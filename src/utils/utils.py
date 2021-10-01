@@ -2,9 +2,11 @@ import os
 import argparse
 from collections import namedtuple
 from shutil import copyfile
+from typing import NamedTuple
 import numpy as np
 from math_fnc import my_math as mm
 from scipy.spatial.transform import Rotation
+from itertools import product
 
 
 def get_default_block_path(blk):
@@ -324,3 +326,46 @@ def calculate_images_coor(pth, blk_info):
             ret = " ".join(ret)
             f.write(f"{ret}\n")
     return dic
+
+
+def parse_img_list(pth):
+    img_list = []
+    Image = namedtuple('Image', ['ts', 'path', 'x', 'y', 'z'])
+    with open(pth, "r") as f:
+        lines = f.readlines()
+        for line in lines:
+            img_name = os.path.split(line)[1]
+            ts = int(os.path.splitext(img_name)[0])
+            img_list.append(Image(ts, line, 0, 0, 0))
+    return img_list
+
+
+def parse_vio(pth):
+    VIO = namedtuple('VIO', ['ts', 'x', 'y', 'z'])
+    vio_list = []
+    with open(pth, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            ts, x, y, z, *_ = line.split(',')
+            vio_list.append(VIO(int(ts), float(x), float(y), float(z)))
+    return vio_list
+
+
+def parse_match(pth):
+    Match = namedtuple('Match', ['id1', 'id2', 'sim'])
+    match_list = []
+    with open(pth, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            id1, id2, sim = line.split()
+            match_list.append(Match(int(id1), int(id2), float(sim)))
+    return match_list
+
+
+def log_image_sim(graph):
+    out_path = get_default_block_path(-1)
+    out_path = os.path.join(out_path, f'mod_match.out')
+    with open(out_path, 'w') as fout:
+        idx_list = np.arange(len(graph))
+        for id1, id2 in list(product(idx_list, idx_list)):
+            fout.write(f"{id1} {id2} {graph[id1, id2]}\n")
