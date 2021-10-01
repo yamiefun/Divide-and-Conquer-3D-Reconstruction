@@ -2,34 +2,6 @@ import numpy as np
 import math
 _EPS = np.finfo(float).eps * 4.0
 
-'''
-def find_transform_matrix(l1, l2):
-    ret = np.dot(np.linalg.inv(l1), l2)
-    return ret
-'''
-
-
-'''
-def find_transform_matrix(l1, l2):
-    # P = np.empty([0, 16])
-    P = np.empty([0, 13])
-    for pt, ptp in zip(l1, l2):
-        x, y, z = pt
-        u, v, w = ptp
-        # arr1 = np.array([x, y, z, 1, 0, 0, 0, 0, 0, 0, 0, 0, -u*x, -u*y, -u*z, -u])
-        # arr2 = np.array([0, 0, 0, 0, x, y, z, 1, 0, 0, 0, 0, -v*x, -v*y, -v*z, -v])
-        # arr3 = np.array([0, 0, 0, 0, 0, 0, 0, 0, x, y, z, 1, -w*x, -w*y, -w*z, -w])
-        arr1 = np.array([x, y, z, 1, 0, 0, 0, 0, 0, 0, 0, 0, -u])
-        arr2 = np.array([0, 0, 0, 0, x, y, z, 1, 0, 0, 0, 0, -v])
-        arr3 = np.array([0, 0, 0, 0, 0, 0, 0, 0, x, y, z, 1, -w])
-        P = np.concatenate((P, arr1[np.newaxis, :], arr2[np.newaxis, :], arr3[np.newaxis, :]))
-    U, S, Vt = np.linalg.svd(P)
-    H = Vt[-1]
-    H = np.concatenate((H[:-1], np.array([0,0,0]), H[-1:]))
-    # H /= H[-1]
-    H = np.reshape(H, (4,4))
-    return H
-'''
 
 def quaternion_matrix(quaternion):
     q = np.array(quaternion, dtype=np.float64, copy=True)
@@ -90,7 +62,7 @@ def affine_matrix_from_points(v0, v1, shear=True, scale=True, usesvd=True):
         u, s, vh = np.linalg.svd(A.T)
         vh = vh[:ndims].T
         B = vh[:ndims]
-        C = vh[ndims : 2 * ndims]
+        C = vh[ndims: 2 * ndims]
         t = np.dot(C, np.linalg.pinv(B))
         t = np.concatenate((t, np.zeros((ndims, 1))), axis=1)
         M = np.vstack((t, ((0.0,) * ndims) + (1.0,)))
@@ -166,18 +138,17 @@ def L2_dist(pnt1, pnt2):
 
 def main():
     # blk1 points
-    l1 = np.array([[0.922949380986978, 0.03988826901495437, - 0.25543931832312905, 1],
-                   [0.9020137551534037, -0.8686446763605445, 6.727590088701047, 1],
-                   [-0.9719236463924485, 0.09775513785617239, -0.06244366107081944, 1],
-                   [-0.10462858959566317, -0.709808680366534, 6.061564583902041, 1]
-                  ])
+    l1 = np.array([[0.922, 0.039, - 0.255, 1],
+                   [0.902, -0.868, 6.727, 1],
+                   [-0.971, 0.097, -0.062, 1],
+                   [-0.104, -0.709, 6.061, 1]])
 
     # blk2 point
-    l2 = np.array([[1.6026888143101714, 1.0198958823694528, -6.004233240203687, 1],
-                   [0.3790912935330495, -0.0780825253723753, 0.3879320949984825, 1],
-                   [-0.17131868229679376, 1.1000097357483747, -6.152928034818453, 1],
-                   [-0.42999441908280667, 0.08113574861038235, -0.3659528471479385, 1]
-                  ])
+    l2 = np.array([[1.602, 1.019, -6.004, 1],
+                   [0.379, -0.078, 0.387, 1],
+                   [-0.171, 1.100, -6.152, 1],
+                   [-0.429, 0.081, -0.365, 1]])
+
     mtx = superimposition_matrix(l1.T, l2.T, scale=True)
     print(mtx)
 

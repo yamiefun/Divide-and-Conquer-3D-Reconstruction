@@ -1,6 +1,7 @@
 import numpy as np
 from utils import utils
 
+
 def L2_dist(pnt1, pnt2):
     return np.sqrt(sum((pnt1-pnt2)**2))
 
@@ -96,19 +97,19 @@ def calculate_cam_err3(mtx, pnt_set1, pnt_set2, thresh):
             inlier += 1
     return outlier
 
-        
+
 def calculate_err_two_matrix(R, t, matched_set, blk1, blk2):
     err = 0
     for pnt_idx in matched_set:
         pnt1 = np.array(blk1[pnt_idx[0]].coor).T
         pnt2 = np.array(blk2[pnt_idx[1]].coor).T
-        
+
         warp_pnt = (R@pnt1) + t
         dist = pnt2 - warp_pnt
         dist = dist*dist
         dist = np.sum(dist)
         dist = np.sqrt(dist)
-        #print(f"dist{dist}")
+        # print(f"dist{dist}")
         err += dist
     err /= len(matched_set)
     print(f"Error: {err}")

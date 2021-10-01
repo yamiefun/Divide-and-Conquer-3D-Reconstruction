@@ -1,10 +1,10 @@
-'''
+"""
 reference:
-[1] J. Shi and J. Malik, “Normalized cuts and image segmentation”, 
+[1] J. Shi and J. Malik, “Normalized cuts and image segmentation”,
     IEEE Trans. on Pattern Analysisand Machine Intelligence, Vol 22
 [2] https://github.com/SatyabratSrikumar/Normalized-Cuts-and-Image-Segmentation-Matlab-Implementation
 edited by Henry Yu @ 2021-07-21
-'''
+"""
 
 import cv2
 import numpy as np
@@ -15,11 +15,9 @@ import math
 
 
 class Ncut_origin(object):
-
-
     '''
-    This class is write for RGB image, so if you want to processing grayscale, some adjustment should worked on
-    F_maker, W_maker function :)
+    This class is write for RGB image, so if you want to processing grayscale,
+    some adjustment should worked on F_maker, W_maker function :)
     '''
 
     def __init__(self, img):
@@ -41,7 +39,7 @@ class Ncut_origin(object):
 
     # V_nodes shape : [self.N,1,3]
     def V_node_maker(self, img):
-        b, g,r = cv2.split(img)
+        b, g, r = cv2.split(img)
         b = b.flatten()
         g = g.flatten()
         r = r.flatten()
@@ -55,8 +53,8 @@ class Ncut_origin(object):
         X_temp_rows = X_temp // self.no_rows
         X_temp_cols = (X_temp // self.no_cols).T
         X = np.zeros((self.N, 1, 2))
-        X[:, :,0] = X_temp_rows.reshape(self.N,1)
-        X[:, :,1] = X_temp_cols.reshape(self.N,1)
+        X[:, :, 0] = X_temp_rows.reshape(self.N, 1)
+        X[:, :, 1] = X_temp_cols.reshape(self.N, 1)
         return X
 
     def F_maker(self, img):
@@ -69,24 +67,24 @@ class Ncut_origin(object):
         print('need to ')
 
     def color_img_feature_maker(self, img):
-        F = img.flatten().reshape((self.N, 1,self.channel))
+        F = img.flatten().reshape((self.N, 1, self.channel))
         F = F.astype('uint8')
         return F
 
     def W_maker(self):
-        X = self.X.repeat(self.N, axis = 1)
-        X_T = self.X.reshape((1, self.N,2)).repeat(self.N,axis = 0)
+        X = self.X.repeat(self.N, axis=1)
+        X_T = self.X.reshape((1, self.N, 2)).repeat(self.N, axis=0)
         diff_X = X - X_T
-        diff_X = diff_X[:, :,0]**2 + diff_X[:,:,1]**2
+        diff_X = diff_X[:, :, 0]**2 + diff_X[:, :, 1]**2
 
-        F = self.F.repeat(self.N, axis = 1)
-        F_T = self.F.reshape((1, self.N,3)).repeat(self.N,axis = 0)
+        F = self.F.repeat(self.N, axis=1)
+        F_T = self.F.reshape((1, self.N, 3)).repeat(self.N, axis=0)
         diff_F = F - F_T
-        diff_F = diff_F[:, :,0]**2 + diff_F[:,:,1]**2 + diff_F[:,:,2]**2
+        diff_F = diff_F[:, :, 0]**2 + diff_F[:, :, 1]**2 + diff_F[:, :, 2]**2
 
         W_map = diff_X < self.r**2  # valid map for W
 
-        W = np.exp(-((diff_F / (self.sigma_I**2)) + \
+        W = np.exp(-((diff_F / (self.sigma_I**2)) +
                    (diff_X / (self.sigma_X**2))))
         WW = W * W_map
         print(f"W max: {WW.max()}")
@@ -94,7 +92,8 @@ class Ncut_origin(object):
         return WW
 
     def D_maker(self):
-        # D is a diagonal matrix using di as diagonal, di is the sum of weight of node i with all other nodes
+        # D is a diagonal matrix using di as diagonal, di is the sum of weight
+        # of node i with all other nodes
         d_i = np.sum(self.W, axis=1)
         D = np.diag(d_i)
         return D
@@ -126,8 +125,8 @@ class Ncut_origin(object):
 
 class Ncut(object):
     '''
-    This class is write for RGB image, so if you want to processing grayscale, some adjustment should worked on 
-    F_maker, W_maker function :)
+    This class is write for RGB image, so if you want to processing grayscale,
+    some adjustment should worked on F_maker, W_maker function :)
     '''
 
     def __init__(self, match_path):
@@ -220,18 +219,16 @@ class Ncut(object):
                 else:
                     den += self.d[idx]
             b = num / den
-            bin_vect[bin_vect==0] = -b
-            
+            bin_vect[bin_vect == 0] = -b
 
-            ncut = (bin_vect.T@(self.D-self.W)@bin_vect)/ \
+            ncut = (bin_vect.T@(self.D-self.W)@bin_vect) / \
                 (bin_vect.T@self.D@bin_vect)
             print(ncut, thresh)
-            if ncut < min_ncut and bin_vect.T@self.D@one_matrix==0:
+            if ncut < min_ncut and bin_vect.T@self.D@one_matrix == 0:
                 min_ncut = ncut
                 ret = thresh
-    
-        return ret
 
+        return ret
 
     def EigenSolver(self):
         print(f"Calculating eigenvector.")
@@ -276,7 +273,8 @@ if __name__ == '__main__':
     # cutter = Ncut_origin(img)
     # eigenvector = cutter.EigenSolver()
 
-    # the process is cost too much time, so I saved the results in a txt file, just ignore this part if you need't
+    # the process is cost too much time, so I saved the results in a txt file,
+    # just ignore this part if you need't
 
     # file = open('result.txt','w')
     # for i in eigenvector:
@@ -298,6 +296,6 @@ if __name__ == '__main__':
     print(f"Result min: {b.min()}")
     b = b.reshape((50, 50))
     b = (b/b.max())*255
-    
+
     cv2.imshow('eigvec', b.astype('uint8'))
     cv2.waitKey()
