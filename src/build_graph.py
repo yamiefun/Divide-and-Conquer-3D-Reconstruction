@@ -3,7 +3,8 @@ from utils import utils
 import bisect
 from math_fnc import my_math as mm
 import numpy as np
-
+from itertools import combinations_with_replacement as CR
+import logging
 
 
 def parse_args():
@@ -14,7 +15,7 @@ def parse_args():
     parser.add_argument("--mo", help='path to `match.out` file', required=True)
     parser.add_argument("--mt", help='path to `match.txt` file', required=True)
     parser.add_argument("--vio", help='path to vio file', required=True)
-
+    parser.add_argument("--debug", help='debug mode', action="store_true")
     args = parser.parse_args()
     return args
 
@@ -53,7 +54,8 @@ def image_dist(img1, img2) -> float:
 
 def add_edge(graph, i, j, weight=1) -> None:
     """
-        This function adds edge to graph between node i and j.
+        This function adds edge in both directions to graph between
+        node i and j.
     """
     graph[i, j] = weight
     graph[j, i] = weight
@@ -61,6 +63,8 @@ def add_edge(graph, i, j, weight=1) -> None:
 
 def main():
     args = parse_args()
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
 
     # Parse files.
     image_list = utils.parse_img_list(args.img_list)
@@ -98,56 +102,56 @@ def main():
     Build init graph.
     I and J is connected if dist(i, j) <= constraint
     """
+    print(f"Building initial viewing graph.")
     graph = np.zeros((image_num, image_num))
-    for i, img1 in enumerate(image_list):
-        for j, img2 in enumerate(image_list):
-            if j < i:
-                continue
-            # if image_dist(img1, img2) <= avg_dist and \
-            #       abs(img1.z-img2.z) <= height_constraint:
-            if image_dist(img1, img2) <= avg_dist:
-                add_edge(graph, i, j)
-            # don't know why need this
-            if j <= 20:
-                add_edge(graph, i, j)
+    for i, j in list(CR(np.arange(image_num), 2)):
+        img1, img2 = image_list[i], image_list[j]
+        if image_dist(img1, img2) <= avg_dist:
+            add_edge(graph, i, j)
+        # don't know why need this
+        if j <= 20:
+            add_edge(graph, i, j)
 
-    """
-    SKIP LOGGING PART
-    :149~:173
-    """
+    # log `node.csv` and `edge.csv`
+    utils.log_node(args.init_num)
+    utils.log_edge(args.init_num, graph)
 
     # Gradually add images to initial graph.
     connect = np.zeros(image_num)
     for i in range(args.init_num):
         connect[i] = 1
 
-    for _ in range(image_num-args.init_num):
+    print(f"Adding images into initial graph.")
+    logging.debug(f"# of rounds to add image: {image_num-args.init_num}\n")
+    for round in range(image_num-args.init_num):
+        logging.debug(f"Add image round: {round}")
         img1, img2, max_sim = 0, 0, 0
 
         for match in match_list:
-            id1, id2, sim = match.id1, match.id2, match.sim
-            if (id1 < args.init_num and id2 >= args.init_num) and \
-                    (connect[id1] == 1 and connect[id2] == 0) and \
-                    sim >= max_sim:     # and sim >= 0.0163
-                max_sim = sim
-                img1, img2 = id1, id2
-        else:
+            if (match.id1 < args.init_num and match.id2 >= args.init_num) and \
+                    (connect[match.id1] == 1 and connect[match.id2] == 0) and \
+                    match.sim >= max_sim and match.sim >= 0.0163:
+                max_sim, img1, img2 = match.sim, match.id1, match.id2
+        if max_sim == 0:
             for match in match_list:
-                id1, id2, sim = match.id1, match.id2, match.sim
-                if connect[id1] + connect[id2] == 1 and sim > max_sim:
-                    max_sim = sim
-                    img1, img2 = id1, id2
+                if connect[match.id1] + connect[match.id2] == 1 and \
+                        match.sim > max_sim:
+                    max_sim, img1, img2 = match.sim, match.id1, match.id2
 
-        if connect[id1] == 1:
-            connect[id2] = 1
-            for i in range(image_num):
-                if graph[i, id1] != 0:
-                    add_edge(graph, i, id2)
-        else:
-            connect[id1] = 1
-            for i in range(image_num):
-                if graph[i, id2] != 0:
-                    add_edge(graph, i, id1)
+        examine = img1
+        target = img2
+        if connect[img1] == 0:
+            connect[img1] = 1
+            examine = img2
+            target = img1
+        connect[img2] = 1
+        for i in range(image_num):
+            if graph[i, examine] != 0:
+                add_edge(graph, i, target)
+ 
+    # Log the graph to file.
+    if args.debug:
+        utils.log_graph(graph, image_num)
 
     # Map image similarity as weigth of edge.
     for match in match_list:
@@ -158,6 +162,8 @@ def main():
     # Print modified image similarity file
     utils.log_image_sim(graph)
 
+    # generate match_import.txt
+    utils.log_match_import(args.mt, graph)
 
 
 if __name__ == "__main__":
