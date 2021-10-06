@@ -17,7 +17,7 @@ def ransac_find_transform(matched_3d_set, blk1, blk2, thresh):
     n_sample = 10000
     outlier_ratio = 0.5
     # n_iter = int(np.log(1-0.99)/np.log(1-(1-outlier_ratio)**n_sample))
-    n_iter = 5
+    n_iter = 10
     print(f"Total round for RANSAC: {n_iter}")
     err = float('inf')
     mtx = None
@@ -85,10 +85,10 @@ def main():
     blk1_3d_info = utils.parse_points3d_txt(blk1_point3d_path)
     blk2_3d_info = utils.parse_points3d_txt(blk2_point3d_path)
 
-    assert len(blk1_anchor_2d_info) == len(blk2_anchor_2d_info), \
-        ('Anchor image number are not the same in two image set',
-         f'blk1 has {len(blk1_anchor_2d_info)}, '
-         f'blk2 has {len(blk2_anchor_2d_info)}')
+    # assert len(blk1_anchor_2d_info) == len(blk2_anchor_2d_info), \
+    #     ('Anchor image number are not the same in two image set',
+    #      f'blk1 has {len(blk1_anchor_2d_info)}, '
+    #      f'blk2 has {len(blk2_anchor_2d_info)}')
 
     if args.match == "":
         print(f"Start finding anchor image feature points.")
@@ -97,18 +97,19 @@ def main():
         match_pnt_path = os.path.join(match_pnt_path, 'matchPoints.txt')
         with open(match_pnt_path, "w") as f:
             for image_name in blk1_anchor_2d_info:
-                image1_info = blk1_anchor_2d_info[image_name]
-                image2_info = blk2_anchor_2d_info[image_name]
+                if image_name in blk2_anchor_2d_info:
+                    image1_info = blk1_anchor_2d_info[image_name]
+                    image2_info = blk2_anchor_2d_info[image_name]
 
-                # find useful 2d point appear in both image set
-                for pnt2d in image1_info.Pnt2D:
-                    for target in image2_info.Pnt2D:
-                        if pnt2d.x == target.x and pnt2d.y == target.y:
-                            matched_3d_set.append((pnt2d.Pnt3DID,
-                                                   target.Pnt3DID))
-                            f.write(f"{pnt2d.x} {pnt2d.y} {pnt2d.Pnt3DID} "
-                                    f"{target.Pnt3DID}\n")
-                            break
+                    # find useful 2d point appear in both image set
+                    for pnt2d in image1_info.Pnt2D:
+                        for target in image2_info.Pnt2D:
+                            if pnt2d.x == target.x and pnt2d.y == target.y:
+                                matched_3d_set.append((pnt2d.Pnt3DID,
+                                                       target.Pnt3DID))
+                                f.write(f"{pnt2d.x} {pnt2d.y} {pnt2d.Pnt3DID} "
+                                        f"{target.Pnt3DID}\n")
+                                break
     else:
         print(f"Load matched anchor image feature points from file.")
         matched_3d_set = []
