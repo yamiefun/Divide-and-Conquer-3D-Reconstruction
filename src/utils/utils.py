@@ -7,6 +7,7 @@ import numpy as np
 from math_fnc import my_math as mm
 from scipy.spatial.transform import Rotation
 from itertools import product
+from itertools import combinations as comb
 
 
 def get_default_block_path(blk):
@@ -329,6 +330,26 @@ def calculate_images_coor(pth, blk_info):
 
 
 def parse_img_list(pth):
+    """
+        Parse `image_list`, and store them in Image (namedtuple) format.
+        There are five fields in Image:
+            - ts (int): Timestamp of the image, which should be parsed from the
+                        image name.
+            - path (str): Path of the image.
+            - x (float): The X value of the corresponding VIO record.
+            - y (float): The Y value of the corresponding VIO record.
+            - z (float): The Z value of the corresponding VIO record.
+
+        In this function, (x, y, z) will be filled in all 0s. These field will
+        then be updated after matching these image with VIO data.
+
+        Args:
+            pth (str): Path of `image_list`.
+
+        Returns:
+            img_list (list): List of image information.
+
+    """
     img_list = []
     Image = namedtuple('Image', ['ts', 'path', 'x', 'y', 'z'])
     with open(pth, "r") as f:
@@ -341,6 +362,25 @@ def parse_img_list(pth):
 
 
 def parse_vio(pth):
+    """
+        Parse VIO log file. Only extract the timestamp and first three number,
+        i.e., (x, y, z) of VIO sensor from the log file. These information will
+        be stored in a namedtuple call VIO.
+        There are four fields in VIO:
+            - ts (int): Timestamp of the record.
+            - x (float): X value in the 3d coordinate.
+            - y (float): Y value in the 3d coordinate.
+            - z (float): Z value in the 3d coordinate.
+
+        The return will be a list containing all records in the vio log file,
+        saved in VIO format.
+
+        Args:
+            pth (str): Path to VIO log file.
+
+        Returns:
+            vio_list (list): List of vio information.
+    """
     VIO = namedtuple('VIO', ['ts', 'x', 'y', 'z'])
     vio_list = []
     with open(pth, 'r') as f:
@@ -352,6 +392,20 @@ def parse_vio(pth):
 
 
 def parse_match(pth):
+    """
+        Parse `match.out` into list of namedtuples.
+        Every line in `match.out` will be parse into a namedtuple `Match`.
+        There are three fields in Match:
+            - id1 (int): The image id of the first image.
+            - id2 (int): The image id of the second image.
+            - sim (float): The image similarity between image id1 and id2.
+
+        Args:
+            pth (str): Path of `match.out`.
+
+        Returns:
+            match_list (list): List of image matches.
+    """
     Match = namedtuple('Match', ['id1', 'id2', 'sim'])
     match_list = []
     with open(pth, 'r') as f:
@@ -362,10 +416,93 @@ def parse_match(pth):
     return match_list
 
 
-def log_image_sim(graph):
+def log_image_sim(graph) -> None:
+    """
+        This function will log the modified image matches to
+        `test/mod_match.out`.
+
+        Args:
+            graph (np.array): The adjacency map of the graph.
+
+        Returns:
+            None
+    """
     out_path = get_default_block_path(-1)
     out_path = os.path.join(out_path, f'mod_match.out')
     with open(out_path, 'w') as fout:
         idx_list = np.arange(len(graph))
         for id1, id2 in list(product(idx_list, idx_list)):
             fout.write(f"{id1} {id2} {graph[id1, id2]}\n")
+
+
+def log_node(init_num) -> None:
+    out_path = get_default_block_path(-1)
+    out_path = os.path.join(out_path, f'node.csv')
+    with open(out_path, 'w') as fout:
+        fout.write(f"Id,Label,Color,idx\n")
+        for i in range(init_num):
+            fout.write(f"{i},{i},red,{i}\n")
+
+
+def log_edge(init_num, graph) -> None:
+    out_path = get_default_block_path(-1)
+    out_path = os.path.join(out_path, f'edge.csv')
+    with open(out_path, 'w') as fout:
+        fout.write(f"Source,Target,vio\n")
+        for i, j in list(comb(np.arange(init_num), 2)):
+            if graph[i, j] != 0:
+                if j == i+1:
+                    fout.write(f"{i},{j},1\n")
+                else:
+                    fout.write(f"{i},{j},0\n")
+
+
+def log_match_import(pth, graph) -> None:
+    out_path = get_default_block_path(-1)
+    out_path = os.path.join(out_path, f'match_import.txt')
+    fout = open(out_path, 'w')
+    with open(pth, 'r') as f:
+        while True:
+            line = f.readline()
+            if not line:
+                break
+            if line[0] == '#':
+                continue
+            if line[0] == '\n':
+                line1 = f.readline()
+                line2 = f.readline()
+                num = int(f.readline())
+                id1, img1 = line1.split()
+                id2, img2 = line2.split()
+                if graph[int(id1), int(id2)] == 0:
+                    for i in range(num):
+                        _ = f.readline()
+                else:
+                    fout.write(f"{img1} {img2} {num}\n")
+                    id_list = []
+                    for i in range(num):
+                        line = f.readline()
+                        line = line.split()
+                        # print(line)
+                        try:
+                            id_list.append([line[0], line[3]])
+                        except Exception as e:
+                            print(f"EOF of match.txt")
+                            break
+                    for i in range(2):
+                        line = [s[i] for s in id_list]
+                        fout.write(f"{' '.join(line)}\n")
+    fout.close()
+
+
+def log_graph(graph, image_num) -> None:
+    out_path = get_default_block_path(-1)
+    out_path = os.path.join(out_path, f'graph.log')
+    # idx_list = np.arange(image_num)
+    with open(out_path, 'w') as fout:
+        # for id1, id2 in list(product(idx_list, idx_list)):
+        #     fout.write(f"{int(graph[id1, id2])} ")
+        for i in range(image_num):
+            for j in range(image_num):
+                fout.write(f"{int(graph[i, j])} ")
+            fout.write(f"\n")
