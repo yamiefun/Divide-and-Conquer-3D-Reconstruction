@@ -88,7 +88,7 @@ def main():
     avg_dist = 0
     for i in range(args.init_num-1):
         avg_dist += image_dist(image_list[i], image_list[i+1])
-    avg_dist = 20 * (avg_dist/(args.init_num-1))
+    avg_dist = 40 * (avg_dist/(args.init_num-1))
     print(f"Average distance between two consecutive image in init graph: "
           f"{avg_dist}")
 
@@ -148,7 +148,7 @@ def main():
         for i in range(image_num):
             if graph[i, examine] != 0:
                 add_edge(graph, i, target)
- 
+
     # Log the graph to file.
     if args.debug:
         utils.log_graph(graph, image_num)

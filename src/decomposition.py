@@ -8,6 +8,8 @@ from collections import namedtuple
 from operator import attrgetter
 import math
 import subprocess
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 def parse_args():
@@ -34,7 +36,7 @@ def parse_match(pth):
             ret.append(new_pair)
 
     # sort match list by similarity score with decend order
-    sorted(ret, key=attrgetter('score'), reverse=True)
+    ret.sort(key=attrgetter('score'), reverse=True)
 
     return ret
 
@@ -64,12 +66,11 @@ def main():
     # ret = ret.astype('float64')
     print(f"Ret max: {ret.max()}")
     print(f"Ret min: {ret.min()}")
-    # ret = (ret/ret.max())
-    print(f"Ret max: {ret.max()}")
-    print(f"Ret min: {ret.min()}")
     print(len(ret))
     print(f"Result: {ret}")
     ret = ret.reshape(-1, 1)
+    sns.heatmap(ret)
+    plt.savefig("heat.png")
 
     # parse image list file
     img_list = []
@@ -103,23 +104,26 @@ def main():
 
     # set the threshold of anchor image
     sim_thresh = 0.1
+    max_anchor_num = 20
     total_image_number = int(math.sqrt(len(match_list)))
     anchor_number = total_image_number * sim_thresh
     anchors = set()
     for pair in match_list:
+        # print(pair.id1, pair.id2, pair.score)
         # if in_different_set(pair, set1, set2) and pair.score > sim_thresh:
-        if in_different_set(pair, set1, set2) and\
-                pair.id1 not in anchors and pair.id2 not in anchors:
+        # if in_different_set(pair, set1, set2) and\
+        #         pair.id1 not in anchors and pair.id2 not in anchors and\
+        #         pair.score > 0:
+        if in_different_set(pair, set1, set2) and pair.score > 0:
             anchors.add(pair.id1)
             anchors.add(pair.id2)
             # print(f"Add cut edge: {pair.id1:4d} <--> {pair.id2:4d},\t"
             #       f"score: {pair.score}")
-            print(f"Cut edge: {img_list[pair.id1]} <----> "
-                  f"{img_list[pair.id2]},\tscore: {pair.score}")
+            print(f"Cut edge: ({pair.id1}) {img_list[pair.id1]} <----> "
+                  f"({pair.id2}) {img_list[pair.id2]},\tscore: {pair.score}")
             if len(anchors) > anchor_number:
-                print(f"Min anchor similarity: {pair.score}")
-                print(f"Number of anchor images: {len(anchors)}")
                 break
+    print(f"Number of anchor images: {len(anchors)}")
     print(f"Anchors: {anchors}")
 
     """

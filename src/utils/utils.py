@@ -416,13 +416,14 @@ def parse_match(pth):
     return match_list
 
 
-def log_image_sim(graph) -> None:
+def log_image_sim(graph, thresh=-1) -> None:
     """
         This function will log the modified image matches to
         `test/mod_match.out`.
 
         Args:
             graph (np.array): The adjacency map of the graph.
+            thresh (int): Max number of edges of a node.
 
         Returns:
             None
@@ -431,8 +432,17 @@ def log_image_sim(graph) -> None:
     out_path = os.path.join(out_path, f'mod_match.out')
     with open(out_path, 'w') as fout:
         idx_list = np.arange(len(graph))
-        for id1, id2 in list(product(idx_list, idx_list)):
-            fout.write(f"{id1} {id2} {graph[id1, id2]}\n")
+        # for id1, id2 in list(product(idx_list, idx_list)):
+        #     fout.write(f"{id1} {id2} {graph[id1, id2]}\n")
+        for id1, tmp in enumerate(graph):
+            tmp = [(idx, sim) for idx, sim in enumerate(tmp)]
+            tmp.sort(key=lambda tup: tup[1], reverse=True)
+            if thresh != -1:
+                tmp = tmp[:thresh]
+            for id2, sim in tmp:
+                fout.write(f"{id1} {id2} {sim}\n")
+
+            
 
 
 def log_node(init_num) -> None:
