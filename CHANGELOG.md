@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2021-10-18
+### Fixed
++ Fixed `mod_match.out` file bugs. Similarity of image pairs should be printed in descending order. 
+
+
 ## 2021-09-30
 ### Added
 + `merge_model.py` can merge two sub-model by match anchor 3d points cloud. The usage is the same as `merge_camera.py`.
