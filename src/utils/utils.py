@@ -2,12 +2,11 @@ import os
 import argparse
 from collections import namedtuple
 from shutil import copyfile
-from typing import NamedTuple
 import numpy as np
 from math_fnc import my_math as mm
 from scipy.spatial.transform import Rotation
-from itertools import product
 from itertools import combinations as comb
+# from .classes import Match
 
 
 def get_default_block_path(blk):
@@ -441,8 +440,6 @@ def log_image_sim(graph, thresh=-1) -> None:
                 tmp = tmp[:thresh]
             for id2, sim in tmp:
                 fout.write(f"{id1} {id2} {sim}\n")
-
-            
 
 
 def log_node(init_num) -> None:
