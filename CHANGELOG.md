@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 2021-10-19
+### Changed
++ Change `namedtuple` to [`dataclass`](https://docs.python.org/3.7/library/dataclasses.html). Need Python3.7 for fully support.
+
 ## 2021-10-18
 ### Fixed
 + Fixed `mod_match.out` file bugs. Similarity of image pairs should be printed in descending order. 
