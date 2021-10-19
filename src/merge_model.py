@@ -1,12 +1,7 @@
-import argparse
 import os
-from collections import namedtuple
 import numpy as np
 import random
-# from transform import find_transform_matrix
 from transform import superimposition_matrix
-from shutil import copyfile
-# from rigid_transform_3D import rigid_transform_3D
 from utils import utils
 from math_fnc import my_math as mm
 
@@ -14,25 +9,18 @@ from math_fnc import my_math as mm
 def ransac_find_transform(matched_3d_set, blk1, blk2, thresh):
     matched_set = np.array(matched_3d_set)
     print(f"Total number of matched point: {len(matched_set)}")
-    n_sample = 10000
-    outlier_ratio = 0.5
+    n_sample = 6
+    # outlier_ratio = 0.5
     # n_iter = int(np.log(1-0.99)/np.log(1-(1-outlier_ratio)**n_sample))
     n_iter = 10
     print(f"Total round for RANSAC: {n_iter}")
     err = float('inf')
     mtx = None
-    R = None
-    t = None
     for it in range(n_iter):
         print(f'RANSAC round {it}')
         # random sample matched 3d points
         blk1_sample = []
         blk2_sample = []
-        # rand_idx = random.sample(range(len(matched_set)), n_sample)
-        # sample_pnt_id = matched_set[rand_idx]
-        # for pnt_idx in sample_pnt_id:
-        #     blk1_sample.append(blk1[pnt_idx[0]].coor)
-        #     blk2_sample.append(blk2[pnt_idx[1]].coor)
         sampled = set()
         while len(blk1_sample) < n_sample:
             idx = random.randrange(len(matched_set))
@@ -48,20 +36,13 @@ def ransac_find_transform(matched_3d_set, blk1, blk2, thresh):
         blk1_mod = utils.modify_point_format(blk1_sample)
         blk2_mod = utils.modify_point_format(blk2_sample)
 
-        # ret_R, ret_t = rigid_transform_3D(blk1_mod, blk2_mod)
-        # tmp_err = calculate_err_two_matrix(
-        #   ret_R, ret_t, matched_set, blk1, blk2)
-
-        # tmp_mtx = find_transform_matrix(blk1_sample, blk2_sample)
         tmp_mtx = superimposition_matrix(blk1_mod, blk2_mod, scale=True)
-        # tmp_err = calculate_err(tmp_mtx, matched_set, blk1, blk2)
         tmp_err = mm.calculate_err(tmp_mtx, matched_set, blk1, blk2)
-        # print(tmp_err)
+
         if tmp_err < err:
             err = tmp_err
             mtx = tmp_mtx
-            # R = ret_R
-            # t = ret_t
+
     print(f"Best mapping outlier ratio: {err/len(matched_set)}")
     # return R, t
     return mtx

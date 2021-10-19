@@ -1,10 +1,10 @@
 import argparse
 from operator import attrgetter
 from utils.utils import get_default_block_path
+from utils.classes import MatchPair
 import os
 from Ncut import Ncut
 from sklearn.cluster import KMeans
-from collections import namedtuple
 from operator import attrgetter
 import math
 import subprocess
@@ -27,15 +27,11 @@ def parse_args():
 
 def parse_match(pth):
     ret = []
-    matchPair = namedtuple("matchPair", ['id1', 'id2', 'score'])
     with open(pth, "r") as f:
         lines = f.readlines()
-        for line in lines:
-            id1, id2, score = line.split()
-            new_pair = matchPair(int(id1), int(id2), float(score))
-            ret.append(new_pair)
+        ret = [MatchPair(line) for line in lines]
 
-    # sort match list by similarity score with decend order
+    # sort match list by similarity score with descend order
     ret.sort(key=attrgetter('score'), reverse=True)
 
     return ret

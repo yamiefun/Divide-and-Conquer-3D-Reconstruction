@@ -35,7 +35,7 @@ def image_vio_matching(image_list, vio_list) -> None:
         x, y, z = vio_list[cloest_idx].x, \
             vio_list[cloest_idx].y, \
             vio_list[cloest_idx].z
-        image_list[idx] = image_list[idx]._replace(x=x, y=y, z=z)
+        image_list[idx].update((x, y, z))
 
 
 def image_dist(img1, img2) -> float:
@@ -43,8 +43,8 @@ def image_dist(img1, img2) -> float:
         Calculate distance between two image VIO.
         Distance means (x1-x2)^2 + (y1-y2)^2 + (z1-z2)^2.
         Args:
-            img1 (namedTuple: Image): Informatoin of image 1.
-            img2 (namedTuple: Image): Informatoin of image 2.
+            img1 (dataclass: Image): Informatoin of image 1.
+            img2 (dataclass: Image): Informatoin of image 2.
 
         Returns:
             (float): Distance of two input images.
