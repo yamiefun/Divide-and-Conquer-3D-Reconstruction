@@ -63,7 +63,7 @@ class Image:
         img_name = os.path.split(line)[1]
         self.ts = int(os.path.splitext(img_name)[0])
         self.path = line
-    
+
     def update(self, coor) -> None:
         self.x = coor[0]
         self.y = coor[1]
@@ -121,18 +121,56 @@ class AnchorImg:
 
 
 @dataclass
-class MatchPair:
-    """ Match pairs parsed from `match.out`.
+class ClusterList:
+    def __init__(self, num, labels) -> None:
+        self.clust = [set() for _ in range(num)]
+        for idx, i in enumerate(labels):
+            self.clust[i].add(idx)
 
-        Attributes:
-            id1 (int): Image1's id.
-            id2 (int): Image2's id.
-            score (float): The similarity score between image1 and image2.
-    """
-    id1: int
-    id2: int
-    score: float
+    def print_lens(self) -> None:
+        """
+            Print len of every cluster.
 
-    def __init__(self, line) -> None:
-        id1, id2, score = line.split()
-        self.id1, self.id2, self.score = int(id1), int(id2), float(score)
+            Args:
+                None
+
+            Returns:
+                None
+        """
+        for idx, clust in enumerate(self.clust):
+            print(f"Number of image in cluster {idx}: {len(clust)}")
+
+    def add_node(self, tar=0, ref=0) -> None:
+        """
+            Add target to cluster. Target should be in the same cluster as the
+            reference.
+        """
+        clust_id = self.find(ref)
+        assert clust_id != -1,\
+            (f"ClusterList add_node() fail because reference node doesn't "
+             f"belong to any cluster.")
+        self.clust[clust_id].add(tar)
+
+    def find(self, idx) -> int:
+        """
+            Find the target idx in all clusters. If founded, return the id of
+            the cluster, otherwise, return -1 instead.
+
+            Args:
+                idx (int): Target index.
+
+            Returns:
+                (int): Cluster id or -1.
+        """
+        for clust_id, clust in enumerate(self.clust):
+            if idx in clust:
+                return clust_id
+        return -1
+
+    def in_different_clust(self, pair) -> bool:
+        clust1 = self.find(pair.id1)
+        clust2 = self.find(pair.id2)
+        assert clust1 != -1 and clust2 != -1,\
+            (f"ClusterList in_different_clust error: id not found in any"
+             f" cluster.")
+        return clust1 != clust2
