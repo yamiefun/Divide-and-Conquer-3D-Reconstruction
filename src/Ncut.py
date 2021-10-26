@@ -129,33 +129,21 @@ class Ncut(object):
     some adjustment should worked on F_maker, W_maker function :)
     '''
 
-    def __init__(self, match_path):
+    def __init__(self, match_path, init_num):
 
         self.path = match_path
-        self.N = self._N_maker()
+        # self.N = self._N_maker() if init_num == -1 else init_num
+        self.N = init_num
         self.W = self._W_maker()
         self.d = self._d_maker()
         self.D = self._D_maker()
 
-        # self.no_rows, self.no_cols, self.channel = img.shape
-        # self.N = self.no_rows * self.no_cols
-        # self.V_nodes = self.V_node_maker(img)
-        # self.X = self.X_maker()
-        # self.F = self.F_maker(img)
-        # # parameter for W clculate
-        # self.r = 2
-        # self.sigma_I = 4
-        # self.sigma_X = 6
-        # # Dense W,D
-        # self.W = self.W_maker()
-        # self.D = self.D_maker()
-
     # V_nodes shape : [self.N,1,3]
-    def _N_maker(self):
-        with open(self.path, "r") as f:
-            lines = f.readlines()
-            N = int(math.sqrt(len(lines)))
-        return N
+    # def _N_maker(self):
+    #     with open(self.path, "r") as f:
+    #         lines = f.readlines()
+    #         N = int(math.sqrt(len(lines)))
+    #     return N
 
     def _W_maker(self):
         """
@@ -164,7 +152,6 @@ class Ncut(object):
         """
         with open(self.path, "r") as f:
             lines = f.readlines()
-            N = math.sqrt(len(lines))
             W = np.zeros((self.N, self.N))
 
             cur_i = -1
@@ -173,17 +160,16 @@ class Ncut(object):
 
             for line in lines:
                 i, j, score = line.split()
-                i = int(i)
-                j = int(j)
+                i, j = int(i), int(j)
                 score = float(score)
                 if i != cur_i:
                     count = 0
                     cur_i = i
                     continue
                 else:
-                    if count <= top_p:
+                    if count <= top_p and i < self.N and j < self.N:
                         count += 1
-                        W[int(i), int(j)] = float(score)
+                        W[i, j] = score
                     else:
                         continue
             # for i in range(self.N):
@@ -206,7 +192,7 @@ class Ncut(object):
     def _find_thresh(self, vect):
         min_ncut = 1e6
         ret = -1
-        one_matrix = np.array([1]*self.N)
+        one_matrix = np.array([1] * self.N)
         for thresh in vect:
             bin_vect = vect.copy()
             bin_vect[bin_vect >= thresh] = 1
