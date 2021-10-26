@@ -5,6 +5,7 @@ from math_fnc import my_math as mm
 import numpy as np
 from itertools import combinations_with_replacement as CR
 import logging
+from collections import defaultdict
 
 
 def parse_args():
@@ -117,34 +118,58 @@ def main():
     utils.log_edge(args.init_num, graph)
 
     # Gradually add images to initial graph.
-    connect = np.zeros(image_num)
+    # connect = np.zeros(image_num)
+    connect = set()
     for i in range(args.init_num):
-        connect[i] = 1
+        # connect[i] = 1
+        connect.add(i)
+
+    match_dict = defaultdict(list)
+    for pair in match_list:
+        match_dict[pair.id1].append((pair.id2, pair.sim))
+    # Note that every list in match_dict should be sorted by similarity in
+    # descending order.
 
     print(f"Adding images into initial graph.")
     logging.debug(f"# of rounds to add image: {image_num-args.init_num}\n")
     for round in range(image_num-args.init_num):
         logging.debug(f"Add image round: {round}")
         img1, img2, max_sim = 0, 0, 0
-
-        for match in match_list:
-            if (match.id1 < args.init_num and match.id2 >= args.init_num) and \
-                    (connect[match.id1] == 1 and connect[match.id2] == 0) and \
-                    match.sim >= max_sim and match.sim >= 0.0163:
-                max_sim, img1, img2 = match.sim, match.id1, match.id2
+        for id1 in range(image_num):
+            if id1 >= args.init_num or id1 not in connect:
+                continue
+            for id2, sim in match_dict[id1]:
+                if sim <= max_sim or sim < 0.0163:
+                    break
+                if id2 >= args.init_num and id2 not in connect:
+                    img1, img2, max_sim = id1, id2, sim
+                    break
         if max_sim == 0:
-            for match in match_list:
-                if connect[match.id1] + connect[match.id2] == 1 and \
-                        match.sim > max_sim:
-                    max_sim, img1, img2 = match.sim, match.id1, match.id2
-
+            for id1 in range(image_num):
+                for id2, sim in match_dict[id1]:
+                    if sim <= max_sim:
+                        break
+                    if (id1 in connect and id2 not in connect) or\
+                            (id1 not in connect and id2 in connect):
+                        img1, img2, max_sim = id1, id2, sim
+                        break
+    # for match in match_list:
+    #     if (match.id1 < args.init_num and match.id2 >= args.init_num) and \
+    #             (connect[match.id1] == 1 and connect[match.id2] == 0) and \
+    #             match.sim >= max_sim and match.sim >= 0.0163:
+    #         max_sim, img1, img2 = match.sim, match.id1, match.id2
+    # if max_sim == 0:
+    #     for match in match_list:
+    #         if connect[match.id1] + connect[match.id2] == 1 and \
+    #                 match.sim > max_sim:
+    #             max_sim, img1, img2 = match.sim, match.id1, match.id2
         examine = img1
         target = img2
-        if connect[img1] == 0:
-            connect[img1] = 1
+        if img1 not in connect:
+            connect.add(img1)
             examine = img2
             target = img1
-        connect[img2] = 1
+        connect.add(img2)
         for i in range(image_num):
             if graph[i, examine] != 0:
                 add_edge(graph, i, target)
