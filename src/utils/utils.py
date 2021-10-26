@@ -350,7 +350,7 @@ def parse_vio(pth) -> List[VIO]:
     return vio_list
 
 
-def parse_match(pth) -> List[Match]:
+def parse_match(pth, init_num=-1) -> List[Match]:
     """
         Parse `match.out`.
         Every line in `match.out` will be parse into a dataclass called
@@ -358,13 +358,21 @@ def parse_match(pth) -> List[Match]:
 
         Args:
             pth (str): Path of `match.out`.
+            init_num (int): Init graph images number. -1 means all images are
+                init images.
 
         Returns:
             match_list (list): List of image matches.
     """
     with open(pth, 'r') as f:
         lines = f.readlines()
-        match_list = [Match(line) for line in lines]
+        if init_num == -1:
+            match_list = [Match(line) for line in lines]
+        else:
+            match_list = [Match(line) for line in lines
+                          if Match(line).id1 < init_num and
+                          Match(line).id2 < init_num]
+
     return match_list
 
 
@@ -431,7 +439,10 @@ def log_match_import(pth, graph) -> None:
             if line[0] == '\n':
                 line1 = f.readline()
                 line2 = f.readline()
-                num = int(f.readline())
+                try:
+                    num = int(f.readline())
+                except Exception:
+                    break
                 id1, img1 = line1.split()
                 id2, img2 = line2.split()
                 if graph[int(id1), int(id2)] == 0:
