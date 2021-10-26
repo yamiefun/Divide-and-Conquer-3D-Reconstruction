@@ -1,54 +1,108 @@
 import argparse
 from operator import attrgetter
-from utils.utils import get_default_block_path
-from utils.classes import MatchPair
+from utils.utils import get_default_block_path, parse_match
+# from utils.classes import MatchPair
+from utils.classes import ClusterList
 import os
 from Ncut import Ncut
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans  # , DBSCAN
 from operator import attrgetter
-import math
+# import math
 import subprocess
 import seaborn as sns
 import matplotlib.pyplot as plt
+from collections import defaultdict
+# from scipy.sparse import lil_matrix
+# import logging
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--match", default=os.path.join(get_default_block_path(-1),
-                                        "match.out"))
+        "--match",
+        help='path to `match.out`',
+        default=os.path.join(get_default_block_path(-1), "match.out"))
     parser.add_argument(
-        "--img_list", default=os.path.join(get_default_block_path(-1),
-                                           "image_list"))
-
+        "--img_list",
+        help='path to `image_list`',
+        default=os.path.join(get_default_block_path(-1), "image_list"))
+    parser.add_argument(
+        "--init_num", help='init route image number', default=-1, type=int)
+    parser.add_argument("--clust_num", default=2, type=int)
+    parser.add_argument("--debug", help='debug mode', action="store_true")
     args = parser.parse_args()
     return args
 
 
-def parse_match(pth):
-    ret = []
-    with open(pth, "r") as f:
-        lines = f.readlines()
-        ret = [MatchPair(line) for line in lines]
-
-    # sort match list by similarity score with descend order
-    ret.sort(key=attrgetter('score'), reverse=True)
-
-    return ret
+def in_different_set(pair, clust_list) -> bool:
+    for idx, cluster in enumerate(clust_list):
+        if pair.id1 in cluster:
+            id1 = idx
+        if pair.id2 in cluster:
+            id2 = idx
+    return id1 != id2
 
 
-def in_different_set(pair, set1, set2):
-    id1 = pair.id1
-    id2 = pair.id2
-    if (id1 in set1 and id2 in set2) or\
-            (id1 in set2 and id2 in set1):
-        return True
-    else:
-        return False
+def cluster_all_images(match_list, init_num, image_num, clust_list):
+    match_dict = defaultdict(list)
+    for pair in match_list:
+        match_dict[pair.id1].append((pair.id2, pair.sim))
+    # Note that every list in match_dict should be sorted by similarity in
+    # descending order by default.
+
+    connected = set()
+    for i in range(init_num):
+        connected.add(i)
+
+    # logging.debug(f"# of rounds to add image: {image_num-init_num}\n")
+    print(f"# of rounds to add image: {image_num-init_num}\n")
+    for round in range(image_num-init_num):
+        # logging.debug(f"Clustering image round: {round}")
+        print(f"Clustering image round: {round}")
+        img1, img2, max_sim = 0, 0, 0
+
+        for img_idx in range(image_num):
+            if img_idx >= init_num or img_idx not in connected:
+                continue
+            for id2, sim in match_dict[img_idx]:
+                if sim <= max_sim:
+                    break
+                if id2 >= init_num and id2 not in connected:
+                    img1, img2, max_sim = img_idx, id2, sim
+                    break
+        if max_sim == 0:
+            for img_idx in range(image_num):
+                for id2, sim in match_dict[img_idx]:
+                    if sim <= max_sim:
+                        break
+                    if (img_idx in connected and id2 not in connected) or\
+                            (img_idx not in connected and id2 in connected):
+                        img1, img2, max_sim = img_idx, id2, sim
+                        break
+        # if img1 in connected:
+        #     connected.add(img2)
+        #     clust_list.add_node(img2, img1)
+        # else:
+        #     connected.add(img1)
+        #     clust_list.add_node(img1, img2)
+
+        if img1 not in connected:
+            img1, img2 = img2, img1
+        connected.add(img2)
+        clust_list.add_node(tar=img2, ref=img1)
 
 
 def main():
     args = parse_args()
+    with open(args.img_list, "r") as f:
+        lines = f.readlines()
+        image_num = (len(lines))
+    if args.init_num == -1:
+        args.init_num = image_num
+    print(f"Total # of images: {image_num}")
+    print(f"Init graph image #: {args.init_num}")
+    # if args.debug:
+    #     logging.basicConfig(level=logging.DEBUG)
     """
     # 1. Image Clustering
     # create normalised cut object
@@ -57,13 +111,14 @@ def main():
     # need to use some other approach to hardly separate them, ex,
     # kmeans or thresholding
     """
-    norm_cut = Ncut(args.match)
+
+    norm_cut = Ncut(args.match, args.init_num)
     ret = norm_cut.EigenSolver()
     # ret = ret.astype('float64')
-    print(f"Ret max: {ret.max()}")
-    print(f"Ret min: {ret.min()}")
-    print(len(ret))
-    print(f"Result: {ret}")
+    # print(f"Ret max: {ret.max()}")
+    # print(f"Ret min: {ret.min()}")
+    # print(len(ret))
+    # print(f"Result: {ret}")
     ret = ret.reshape(-1, 1)
     sns.heatmap(ret)
     plt.savefig("heat.png")
@@ -75,19 +130,21 @@ def main():
         for line in lines:
             img_list.append(line[:-1])
 
-    kmeans = KMeans(n_clusters=2)
+    kmeans = KMeans(n_clusters=args.clust_num)
     clust = kmeans.fit(ret)
-    set1 = set()
-    set2 = set()
-    for idx, i in enumerate(clust.labels_):
-        if i > 0:
-            set1.add(idx)
-        else:
-            set2.add(idx)
-    print(f"Number of image in set 1: {len(set1)}")
-    print(f"Number of image in set 2: {len(set2)}")
-    print(set1)
-    print(set2)
+    # clust_list = [set() for _ in range(args.clust_num)]
+    # for idx, i in enumerate(clust.labels_):
+    #     clust_list[i].add(idx)
+    clust_list = ClusterList(args.clust_num, clust.labels_)
+    clust_list.print_lens()
+    # for idx, clust in enumerate(clust_list):
+    #     print(f"Number of anchor image in cluster {idx}: {len(clust)}")
+    # print(f"Number of image in set 1: {len(set1)}")
+    # print(f"Number of image in set 2: {len(set2)}")
+    # print(set1)
+    # print(set2)
+
+    # parse match.out file
 
     """
     # 2. Finding Anchor Images
@@ -95,14 +152,15 @@ def main():
     # different clusters and the similarity score is large enough, they can
     # be anchor images.
     """
-    # parse match.out file
+
+    # sort match list with similarity in descending order
     match_list = parse_match(args.match)
+    match_list.sort(key=attrgetter('sim'), reverse=True)
 
     # set the threshold of anchor image
     sim_thresh = 0.1
     max_anchor_num = 20
-    total_image_number = int(math.sqrt(len(match_list)))
-    anchor_number = total_image_number * sim_thresh
+    anchor_number = image_num * sim_thresh
     anchors = set()
     for pair in match_list:
         # print(pair.id1, pair.id2, pair.score)
@@ -110,17 +168,32 @@ def main():
         # if in_different_set(pair, set1, set2) and\
         #         pair.id1 not in anchors and pair.id2 not in anchors and\
         #         pair.score > 0:
-        if in_different_set(pair, set1, set2) and pair.score > 0:
+        # if in_different_set(pair, set1, set2) and pair.score > 0:
+        # if in_different_set(pair, clust_list) and pair.sim > 0:
+        if pair.id1 >= args.init_num or pair.id2 >= args.init_num or\
+                (pair.id1 in anchors and pair.id2 in anchors):
+            continue
+
+        if clust_list.in_different_clust(pair) and pair.sim > 0:
             anchors.add(pair.id1)
             anchors.add(pair.id2)
             # print(f"Add cut edge: {pair.id1:4d} <--> {pair.id2:4d},\t"
             #       f"score: {pair.score}")
             print(f"Cut edge: ({pair.id1}) {img_list[pair.id1]} <----> "
-                  f"({pair.id2}) {img_list[pair.id2]},\tscore: {pair.score}")
+                  f"({pair.id2}) {img_list[pair.id2]},\tscore: {pair.sim}")
             if len(anchors) > anchor_number:
                 break
     print(f"Number of anchor images: {len(anchors)}")
     print(f"Anchors: {anchors}")
+
+    """
+    X. Cluster all images after finding anchors.
+    """
+    match_list = parse_match(args.match)
+    if args.init_num != image_num:
+        cluster_all_images(match_list, args.init_num, image_num, clust_list)
+    print(f"Finish clustering all images")
+    clust_list.print_lens()
 
     """
     3. Get image index, separate images into two cluster with anchor images.
@@ -130,36 +203,61 @@ def main():
 
     # separate images
     pth = get_default_block_path(-1)
-    block1_dir = os.path.join(pth, 'block1')
-    block2_dir = os.path.join(pth, 'block2')
-    if not os.path.exists(block1_dir):
-        os.makedirs(block1_dir)
-        os.makedirs(os.path.join(block1_dir, 'anchor'))
-    if not os.path.exists(block2_dir):
-        os.makedirs(block2_dir)
-        os.makedirs(os.path.join(block2_dir, 'anchor'))
+    # for i in range(len(clust_list)):
+    #     locals()[f'block{str(i)}_dir'] = os.path.join(pth, f'block{i}')
+    block_dir_list = []
+    for i in range(args.clust_num):
+        block_dir_list.append(os.path.join(pth, f'block{i}'))
+    # block1_dir = os.path.join(pth, 'block1')
+    # block2_dir = os.path.join(pth, 'block2')
+    # if not os.path.exists(block1_dir):
+    #     os.makedirs(block1_dir)
+    #     os.makedirs(os.path.join(block1_dir, 'anchor'))
+    # if not os.path.exists(block2_dir):
+    #     os.makedirs(block2_dir)
+    #     os.makedirs(os.path.join(block2_dir, 'anchor'))
+
+    for block_path in block_dir_list:
+        if not os.path.exists(block_path):
+            os.makedirs(block_path)
+            os.makedirs(os.path.join(block_path, 'anchor'))
 
     for idx in anchors:
         img = img_list[idx]
         img_name = os.path.split(img)[-1]
-        _ = subprocess.run(
-            ['cp', img, os.path.join(block1_dir, 'anchor', img_name)])
-        _ = subprocess.run(
-            ['cp', img, os.path.join(block2_dir, 'anchor', img_name)])
+        # _ = subprocess.run(
+        #     ['cp', img, os.path.join(block1_dir, 'anchor', img_name)])
+        # _ = subprocess.run(
+        #     ['cp', img, os.path.join(block2_dir, 'anchor', img_name)])
+        for block_path in block_dir_list:
+            _ = subprocess.run(
+                ['cp', img, os.path.join(block_path, 'anchor', img_name)])
 
-    for idx in set1:
-        img = img_list[idx]
-        img_name = os.path.split(img)[-1]
-        if idx not in anchors:
-            ret = subprocess.run(
-                ['cp', img, os.path.join(block1_dir, img_name)])
+    fout = open(f"{get_default_block_path(-1)}/cluster.log", "w")
+    for set_idx, img_set in enumerate(clust_list.clust):
+        for idx in img_set:
+            img = img_list[idx]
+            img_name = os.path.split(img)[-1]
+            if idx not in anchors:
+                ret = subprocess.run(
+                    ['cp', img, os.path.join(
+                        block_dir_list[set_idx], img_name)])
+                fout.write(f"{set_idx}\t{img}\n")
+    fout.close()
 
-    for idx in set2:
-        img = img_list[idx]
-        img_name = os.path.split(img)[-1]
-        if idx not in anchors:
-            ret = subprocess.run(
-                ['cp', img, os.path.join(block2_dir, img_name)])
+    # for idx in set1:
+    #     img = img_list[idx]
+    #     img_name = os.path.split(img)[-1]
+    #     if idx not in anchors:
+    #         ret = subprocess.run(
+    #             ['cp', img, os.path.join(block1_dir, img_name)])
+
+    # for idx in set2:
+    #     img = img_list[idx]
+    #     img_name = os.path.split(img)[-1]
+    #     if idx not in anchors:
+    #         ret = subprocess.run(
+    #             ['cp', img, os.path.join(block2_dir, img_name)])
 
 
 if __name__ == "__main__":
