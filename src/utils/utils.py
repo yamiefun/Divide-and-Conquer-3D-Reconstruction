@@ -78,6 +78,7 @@ def parse_images_txt(image_pth) -> dict:
         This function will extract useful information in `images.txt`,
         including anchor image name, 2d points info, corresponding 3d
         points id.
+
         The format in images.txt is:
             - Image list with two lines of data per image:
                 - IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME
@@ -316,6 +317,7 @@ def calculate_images_coor(pth, blk_info):
 def parse_img_list(pth):
     """
         Parse `image_list`, and store them in Image (dataclass) format.
+
         In this function, (x, y, z) will be filled in all 0s. These field will
         then be updated after matching these image with VIO data.
 
@@ -336,6 +338,7 @@ def parse_vio(pth) -> List[VIO]:
         Parse VIO log file. Only extract the timestamp and first three number,
         i.e., (x, y, z) of VIO sensor from the log file. These information will
         be stored in a dataclass call VIO.
+
         The return will be a list containing all records in the vio log file.
 
         Args:
