@@ -15,8 +15,10 @@ def get_default_block_path(blk) -> str:
         folders, named 'blk' and a number behind, ex, 'blk1', 'blk2', etc.
         All of them should be placed under 'test' folder.
         When 'blk' is -1, this function will return where 'src' is.
+
         Args:
             blk (int): The integer behind 'blk' in the folder name.
+
         Returns:
             string: Absolute path to the log folders.
     """
@@ -54,9 +56,11 @@ def modify_point_format(pnt):
         and then return the transpose of the matrix. So the return will be
         a numpy array with shape (4, N), where all elements in the 4th row
         are 1.
+
         Args:
             pnt (numpy array): with shape (N, 3), where N means the number
                 of points.
+
         Returns:
             ret (numpy array): with shape (4, N) where all elements in the
                 4th row are 1.
@@ -78,8 +82,10 @@ def parse_images_txt(image_pth) -> dict:
             - Image list with two lines of data per image:
                 - IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME
                 - POINTS2D[] as (X, Y, POINT3D_ID)
+
         Args:
             image_pth (str): Path to 'images.txt' file.
+
         Returns:
             ret (dict): Key is the NAME in `images.txt`, value is other
                 information in `images.txt` except NAME.
@@ -217,9 +223,11 @@ def check_useful_image(image_info):
     """
         Check if there is any 2d image point on the anchor image that is built
         into the 3d model.
+
         Args:
             image_info (namedTuple): The anchor image info parsed by
                 `parse_images_txt` function.
+
         Returns:
             (bool): Ture if there is at least one image point is used in 3d
                 model, False otherwise.
@@ -277,10 +285,12 @@ def calculate_images_coor(pth, blk_info):
         This function will calculate the 3d coordinate of every anchor images.
         The result will be returned, and also be written to log file under
         blk folder, called "mod_images.txt".
+
         Args:
             pth (string): Path to "images.txt" file.
             blk_info (dict): The dictionary returned by function
                 `parse_iamges_txt`.
+
         Returns:
             dic (dict): Key is the image name, value is the 3d coordinates of
                 the image.
@@ -308,8 +318,10 @@ def parse_img_list(pth):
         Parse `image_list`, and store them in Image (dataclass) format.
         In this function, (x, y, z) will be filled in all 0s. These field will
         then be updated after matching these image with VIO data.
+
         Args:
             pth (str): Path of `image_list`.
+
         Returns:
             img_list (list): List of image information.
     """
@@ -325,8 +337,10 @@ def parse_vio(pth) -> List[VIO]:
         i.e., (x, y, z) of VIO sensor from the log file. These information will
         be stored in a dataclass call VIO.
         The return will be a list containing all records in the vio log file.
+
         Args:
             pth (str): Path to VIO log file.
+
         Returns:
             vio_list (list): List of vio information.
     """
@@ -341,10 +355,12 @@ def parse_match(pth, init_num=-1) -> List[Match]:
         Parse `match.out`.
         Every line in `match.out` will be parse into a dataclass called
         `Match`, including id1, id2, and similarity between them.
+
         Args:
             pth (str): Path of `match.out`.
             init_num (int): Init graph images number. -1 means all images are
                 init images.
+
         Returns:
             match_list (list): List of image matches.
     """
@@ -364,9 +380,11 @@ def log_image_sim(graph, thresh=-1) -> None:
     """
         This function will log the modified image matches to
         `test/mod_match.out`.
+
         Args:
             graph (np.array): The adjacency map of the graph.
             thresh (int): Max number of edges of a node.
+
         Returns:
             None
     """
