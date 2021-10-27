@@ -1,31 +1,34 @@
 import os
 import argparse
+from collections import namedtuple
 from shutil import copyfile
-from typing import List
+from typing import NamedTuple
 import numpy as np
 from math_fnc import my_math as mm
 from scipy.spatial.transform import Rotation
+from itertools import product
 from itertools import combinations as comb
-from .classes import Match, VIO, Point3D, Point2D, AnchorImg, Image
 
 
-def get_default_block_path(blk) -> str:
+def get_default_block_path(blk):
     """
-        Generate path for log files. The logs should be put in separate
-        folders, named 'blk' and a number behind, ex, 'blk1', 'blk2', etc.
-        All of them should be placed under 'test' folder.
-        When 'blk' is -1, this function will return where 'src' is.
+    Generate path for log files. The logs should be put in separate folders,
+    named 'blk' and a number behind, ex, 'blk1', 'blk2', etc. All of them
+    should be placed under 'test' folder.
+    When 'blk' is -1, this function will return where 'src' is.
 
-        Args:
-            blk (int): The integer behind 'blk' in the folder name.
+    Args:
+        blk (int): The integer behind 'blk' in the folder name.
 
-        Returns:
-            string: Absolute path to the log folders.
+    Returns:
+        string: Absolute path to the log folders.
     """
     file_path = os.path.realpath(__file__)
     pth = os.path.split(file_path)[0]
     pth = pth.split(os.sep)[0:-2]
-    if blk >= 0:
+    if blk == 0:
+        pth = os.path.join(*pth, f"test", f"whole")
+    elif blk >= 1:
         pth = os.path.join(*pth, f"test", f"blk{blk}")
     else:
         pth = os.path.join(*pth, f"test")
@@ -35,6 +38,7 @@ def get_default_block_path(blk) -> str:
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--whole", default=get_default_block_path(0))
     parser.add_argument("--blk1", default=get_default_block_path(1))
     parser.add_argument("--blk2", default=get_default_block_path(2))
     parser.add_argument("--match", default="")
@@ -70,25 +74,41 @@ def modify_point_format(pnt):
     return ret
 
 
-def parse_images_txt(image_pth) -> dict:
+def parse_images_txt(image_pth):
     """
         This function will extract useful information in `images.txt`,
         including anchor image name, 2d points info, corresponding 3d
         points id.
 
         The format in images.txt is:
-            - Image list with two lines of data per image:
-                - IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME
-                - POINTS2D[] as (X, Y, POINT3D_ID)
+            # Image list with two lines of data per image:
+            #   IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME
+            #   POINTS2D[] as (X, Y, POINT3D_ID)
+
+        Image information is stored in a namedtuple with 5 fields:
+            - ImgID (int): IMAGE_ID.
+            - Q (list): QW, QX, QY, QZ corresponding to Q[0] to Q[3].
+            - T (list): TX, TY, TZ corresponding to T[0] to T[2].
+            - CamID (int): CAMERA_ID.
+            - Pnt2D (list): Include useful 2d points informations, stored
+                in Point2D (namedtuple) format.
+
+        Point2D include 3 fileds:
+            - x (float): X.
+            - y (float): Y.
+            - Pnt3DID (int): POINT3D_ID.
 
         Args:
             image_pth (str): Path to 'images.txt' file.
 
         Returns:
             ret (dict): Key is the NAME in `images.txt`, value is other
-                information in `images.txt` except NAME.
+            information in `images.txt` except NAME.
     """
     find_anchor = False
+    AnchorImg = namedtuple(
+        'AnchorImg', ['ImgID', 'Q', 'T', 'CamID', 'Pnt2D'])
+    Point2D = namedtuple('Point2D', ['x', 'y', 'Pnt3DID'])
     ret = {}
     img_id = None
     Q = [None]*4
@@ -134,6 +154,7 @@ def parse_images_txt(image_pth) -> dict:
 
 
 def parse_points3d_txt(pnt3d_path):
+    Point3D = namedtuple('Point3D', ['coor', 'rgb', 'err', 'track'])
     coor = [None]*3
     rgb = [None]*3
     ret = {}
@@ -313,7 +334,14 @@ def calculate_images_coor(pth, blk_info):
 
 def parse_img_list(pth):
     """
-        Parse `image_list`, and store them in Image (dataclass) format.
+        Parse `image_list`, and store them in Image (namedtuple) format.
+        There are five fields in Image:
+            - ts (int): Timestamp of the image, which should be parsed from the
+                        image name.
+            - path (str): Path of the image.
+            - x (float): The X value of the corresponding VIO record.
+            - y (float): The Y value of the corresponding VIO record.
+            - z (float): The Z value of the corresponding VIO record.
 
         In this function, (x, y, z) will be filled in all 0s. These field will
         then be updated after matching these image with VIO data.
@@ -323,20 +351,32 @@ def parse_img_list(pth):
 
         Returns:
             img_list (list): List of image information.
+
     """
+    img_list = []
+    Image = namedtuple('Image', ['ts', 'path', 'x', 'y', 'z'])
     with open(pth, "r") as f:
         lines = f.readlines()
-        img_list = [Image(line) for line in lines]
+        for line in lines:
+            img_name = os.path.split(line)[1]
+            ts = int(os.path.splitext(img_name)[0])
+            img_list.append(Image(ts, line, 0, 0, 0))
     return img_list
 
 
-def parse_vio(pth) -> List[VIO]:
+def parse_vio(pth):
     """
         Parse VIO log file. Only extract the timestamp and first three number,
         i.e., (x, y, z) of VIO sensor from the log file. These information will
-        be stored in a dataclass call VIO.
+        be stored in a namedtuple call VIO.
+        There are four fields in VIO:
+            - ts (int): Timestamp of the record.
+            - x (float): X value in the 3d coordinate.
+            - y (float): Y value in the 3d coordinate.
+            - z (float): Z value in the 3d coordinate.
 
-        The return will be a list containing all records in the vio log file.
+        The return will be a list containing all records in the vio log file,
+        saved in VIO format.
 
         Args:
             pth (str): Path to VIO log file.
@@ -344,46 +384,48 @@ def parse_vio(pth) -> List[VIO]:
         Returns:
             vio_list (list): List of vio information.
     """
+    VIO = namedtuple('VIO', ['ts', 'x', 'y', 'z'])
+    vio_list = []
     with open(pth, 'r') as f:
         lines = f.readlines()
-        vio_list = [VIO(line) for line in lines]
+        for line in lines:
+            ts, x, y, z, *_ = line.split(',')
+            vio_list.append(VIO(int(ts), float(x), float(y), float(z)))
     return vio_list
 
 
-def parse_match(pth, init_num=-1) -> List[Match]:
+def parse_match(pth):
     """
-        Parse `match.out`.
-        Every line in `match.out` will be parse into a dataclass called
-        `Match`, including id1, id2, and similarity between them.
+        Parse `match.out` into list of namedtuples.
+        Every line in `match.out` will be parse into a namedtuple `Match`.
+        There are three fields in Match:
+            - id1 (int): The image id of the first image.
+            - id2 (int): The image id of the second image.
+            - sim (float): The image similarity between image id1 and id2.
 
         Args:
             pth (str): Path of `match.out`.
-            init_num (int): Init graph images number. -1 means all images are
-                init images.
 
         Returns:
             match_list (list): List of image matches.
     """
+    Match = namedtuple('Match', ['id1', 'id2', 'sim'])
+    match_list = []
     with open(pth, 'r') as f:
         lines = f.readlines()
-        if init_num == -1:
-            match_list = [Match(line) for line in lines]
-        else:
-            match_list = [Match(line) for line in lines
-                          if Match(line).id1 < init_num and
-                          Match(line).id2 < init_num]
-
+        for line in lines:
+            id1, id2, sim = line.split()
+            match_list.append(Match(int(id1), int(id2), float(sim)))
     return match_list
 
 
-def log_image_sim(graph, thresh=-1) -> None:
+def log_image_sim(graph) -> None:
     """
         This function will log the modified image matches to
         `test/mod_match.out`.
 
         Args:
             graph (np.array): The adjacency map of the graph.
-            thresh (int): Max number of edges of a node.
 
         Returns:
             None
@@ -391,17 +433,12 @@ def log_image_sim(graph, thresh=-1) -> None:
     out_path = get_default_block_path(-1)
     out_path = os.path.join(out_path, f'mod_match.out')
     with open(out_path, 'w') as fout:
-        for id1, tmp in enumerate(graph):
-            tmp = [(idx, sim) for idx, sim in enumerate(tmp)]
-            tmp.sort(key=lambda tup: tup[1], reverse=True)
-            if thresh != -1:
-                tmp = tmp[:thresh]
-            for id2, sim in tmp:
-                fout.write(f"{id1} {id2} {sim}\n")
+        idx_list = np.arange(len(graph))
+        for id1, id2 in list(product(idx_list, idx_list)):
+            fout.write(f"{id1} {id2} {graph[id1, id2]}\n")
 
 
 def log_node(init_num) -> None:
-    """ This function will generate `node.csv` file. """
     out_path = get_default_block_path(-1)
     out_path = os.path.join(out_path, f'node.csv')
     with open(out_path, 'w') as fout:
@@ -411,7 +448,6 @@ def log_node(init_num) -> None:
 
 
 def log_edge(init_num, graph) -> None:
-    """ This function will generate `edge.csv` file. """
     out_path = get_default_block_path(-1)
     out_path = os.path.join(out_path, f'edge.csv')
     with open(out_path, 'w') as fout:
@@ -425,7 +461,6 @@ def log_edge(init_num, graph) -> None:
 
 
 def log_match_import(pth, graph) -> None:
-    """ This function will generate `match_import.txt` file. """
     out_path = get_default_block_path(-1)
     out_path = os.path.join(out_path, f'match_import.txt')
     fout = open(out_path, 'w')
@@ -439,10 +474,7 @@ def log_match_import(pth, graph) -> None:
             if line[0] == '\n':
                 line1 = f.readline()
                 line2 = f.readline()
-                try:
-                    num = int(f.readline())
-                except Exception:
-                    break
+                num = int(f.readline())
                 id1, img1 = line1.split()
                 id2, img2 = line2.split()
                 if graph[int(id1), int(id2)] == 0:
@@ -454,6 +486,7 @@ def log_match_import(pth, graph) -> None:
                     for i in range(num):
                         line = f.readline()
                         line = line.split()
+                        # print(line)
                         try:
                             id_list.append([line[0], line[3]])
                         except Exception as e:
@@ -466,10 +499,12 @@ def log_match_import(pth, graph) -> None:
 
 
 def log_graph(graph, image_num) -> None:
-    """ This function will generate `graph.log` file. """
     out_path = get_default_block_path(-1)
     out_path = os.path.join(out_path, f'graph.log')
+    # idx_list = np.arange(image_num)
     with open(out_path, 'w') as fout:
+        # for id1, id2 in list(product(idx_list, idx_list)):
+        #     fout.write(f"{int(graph[id1, id2])} ")
         for i in range(image_num):
             for j in range(image_num):
                 fout.write(f"{int(graph[i, j])} ")
