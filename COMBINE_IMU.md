@@ -5,7 +5,6 @@ Note: Some steps will be different if you're using different equipment to record
 ## A. Create Rosbag File
 Record bag file, including camera and imu information. Open 3 terminals, run the commands below in them separately.
 1. usb_cam
-    
     Capture USB camera frames.
     [REF](https://blog.csdn.net/dengheCSDN/article/details/78983993)
     ```
@@ -15,7 +14,6 @@ Record bag file, including camera and imu information. Open 3 terminals, run the
     $ roslaunch usb_cam usb_cam-test.launch
     ```
 2. IMU
-
     Capture IMU information.
     [REF](http://wiki.ros.org/razor_imu_9dof)
     ```
@@ -44,13 +42,10 @@ Because we need to resize the frames, we need to separate the bag file into fram
     A folder called `out_fold` will be generated, and there will be two files in it, `cam0` folder contains all frames in the bag file and `imu0.csv` records all IMU information.
 
 5. Subsample frames
-
     Reduce the number of frames.
 6. Resize images
-
     Resize all image to 640*360.
 7. Merge images and IMU to create a modified bag file
-
     **(Note: Start from this step if you're using `iii_video2image.py` to parse video and IMU info.)**
     ```
     $ kalibr_bagcreater --folder <folder path> --output-bag <output bag file name>
@@ -135,7 +130,6 @@ Use libvot to compute the similarity between images by sift feature.
 ---
 ## E. Build Viewing Graph
 Run our code. This code will generate file `match_import.txt`.
-
 Run `build_graph.py` to build viewing graph. This program will trim some unreasonable edge in viewing graph by checking IMU information. 
 Usage: 
 ```
