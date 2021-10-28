@@ -176,8 +176,8 @@ $ python3 decomposition.py \
     --clust_num <number of clusters>
 ```
 This code will automatically generate a folder in the same place of `src`, called `test`. Inside `test`, there will be some folders, i.e., `block<i>` for `i` from `0` to `clust_num-1`. All images will be separated and placed in these folder. Additionally, there will be a folder called `anchor` in all `block` folder, which contains a set of anchor images. Anchor images in these clusters are all identical.
-   
-    **Notes: If the separated result is bad or not reasonable, you can separate the images into multi-clusters by yourself manually.**
+
+**Notes: If the separated result is bad or not reasonable, you can separate the images into multi-clusters by yourself manually.**
 ---
 
 ## 3D Reconstruction
