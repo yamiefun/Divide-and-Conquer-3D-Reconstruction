@@ -64,8 +64,7 @@ Because we need to resize the frames, we need to separate the bag file into fram
     $ kalibr_bagcreater --folder <folder path> --output-bag <output bag file name>
     ```
     where `folder path` is the folder containing `cam0` and `imu0.csv`.
-    
----
+
 ### B. Vins_mono
 Run vins_mono to obtain extrinsic matrix and `vins_result`.
 The output will be stored in the path set in the config file 
@@ -93,7 +92,6 @@ $ rosbag play <bag file>
 ```
 After finish playing the bag file in terminal 3, two files will be automatically saved in the path set in the `yaml` config file, which are `vins_result_loop.csv` and `vins_result_no_loop.csv`.
 
----
 ### C. VisualSFM
 Use VisualSFM to caluclate pairwise image matching and sift feature for each image.
 
@@ -115,7 +113,6 @@ Use VisualSFM to caluclate pairwise image matching and sift feature for each ima
     ```
     VisualSFM will generate `.mat` and `.sift` file for each frame in `cam0`.
 
----
 ### D. libvot
 Use libvot to compute the similarity between images by sift feature.
 1. Generate list of image name and sift name.
@@ -140,7 +137,6 @@ Use libvot to compute the similarity between images by sift feature.
     $ image_search ./sift_list ./output
     ```
 
----
 ### E. Build Viewing Graph
 Run our code. This code will generate file `match_import.txt`.
 
@@ -157,7 +153,7 @@ $ python3 build_graph.py \
 This code will generate two improtant files, `match_import.txt` and `mod_match.out`.
 + `match_import.txt` is modified from `match.txt`, you could directly use VisualSFM to build 3d model with images and this file. See [step F](#F-VisualSFM) for more information.
 + `mod_match.out` is modified from `match.out`, contains modified viewing graph. You could apply divide and conquer algorithm on this file.
----
+
 ### F. VisualSFM
 Use VisualSFM to reconstruct the 3d model.
 ```
