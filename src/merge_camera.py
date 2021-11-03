@@ -66,7 +66,7 @@ def ransac_find_camera_transform(used_list, blk1, blk2, thresh):
         # blk2_cam = utils.modify_point_format(blk2_sample)
 
         tmp_mtx = superimposition_matrix(blk1_sample, blk2_sample, scale=True)
-        tmp_err = mm.calculate_cam_err3(tmp_mtx, cam1_list, cam2_list, thresh)
+        tmp_err = mm.calculate_cam_err(tmp_mtx, cam1_list, cam2_list, thresh)
         if tmp_err < err:
             mtx = tmp_mtx
             err = tmp_err

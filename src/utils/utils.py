@@ -25,7 +25,9 @@ def get_default_block_path(blk) -> str:
     file_path = os.path.realpath(__file__)
     pth = os.path.split(file_path)[0]
     pth = pth.split(os.sep)[0:-2]
-    if blk >= 0:
+    if blk == 0:
+        pth = os.path.join(*pth, f"test", f"whole")
+    elif blk >= 1:
         pth = os.path.join(*pth, f"test", f"blk{blk}")
     else:
         pth = os.path.join(*pth, f"test")
@@ -35,6 +37,7 @@ def get_default_block_path(blk) -> str:
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--whole", default=get_default_block_path(0))
     parser.add_argument("--blk1", default=get_default_block_path(1))
     parser.add_argument("--blk2", default=get_default_block_path(2))
     parser.add_argument("--match", default="")

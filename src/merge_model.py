@@ -6,7 +6,11 @@ from utils import utils
 from math_fnc import my_math as mm
 
 
-def ransac_find_transform(matched_3d_set, blk1, blk2, thresh):
+def ransac_find_point_transform(matched_3d_set, blk1, blk2, thresh):
+    blk1_pnt = [blk1[key].coor for key in blk1]
+    blk2_pnt = [blk2[key].coor for key in blk2]
+    blk1_pnt = utils.modify_point_format(np.asarray(blk1_pnt))
+    blk2_pnt = utils.modify_point_format(np.asarray(blk2_pnt))
     matched_set = np.array(matched_3d_set)
     print(f"Total number of matched point: {len(matched_set)}")
     n_sample = 6
@@ -34,10 +38,12 @@ def ransac_find_transform(matched_3d_set, blk1, blk2, thresh):
                 blk2_sample.append(blk2[pnt_idx[1]].coor)
 
         blk1_mod = utils.modify_point_format(blk1_sample)
+        print(blk1_mod.shape)
         blk2_mod = utils.modify_point_format(blk2_sample)
 
         tmp_mtx = superimposition_matrix(blk1_mod, blk2_mod, scale=True)
-        tmp_err = mm.calculate_err(tmp_mtx, matched_set, blk1, blk2)
+        tmp_err = mm.calculate_point_err(tmp_mtx, matched_set,
+                                         blk1, blk2, thresh)
 
         if tmp_err < err:
             err = tmp_err
@@ -104,7 +110,7 @@ def main():
 
     print(f"Start finding transform matrix.")
     thresh = 0.8
-    transform_mtx = ransac_find_transform(
+    transform_mtx = ransac_find_point_transform(
         matched_3d_set, blk1_3d_info, blk2_3d_info, thresh)
     print(f"Transformation matrix:\n{transform_mtx}")
 
