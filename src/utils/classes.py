@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import List
 import os
+from collections import defaultdict
+from numpy import string_
 
 
 @dataclass
@@ -174,3 +176,59 @@ class ClusterList:
             (f"ClusterList in_different_clust error: id not found in any"
              f" cluster.")
         return clust1 != clust2
+
+
+@dataclass
+class ColmapImage:
+    ImgID: int
+    ImgName: str
+    KeypointNum: int = 0
+
+
+@dataclass
+class AdjacencyMap:
+    def __init__(self, image_ids, self_weight=1.0):
+        """
+            Create adjacency map. Adjacency map is a dictionary, key is
+            image_id1, value is list all nodes that are connected to image_id1.
+            Each item in the list will be a tuple (image_id2, weight).
+
+            Args:
+                image_ids (list): All image id.
+                self_weight (float): The weight of self edge.
+
+            Returns:
+                None
+        """
+        self.map = defaultdict(list)
+        # initial map, self edge
+        for image_id in image_ids:
+            self.map[image_id].append((image_id, self_weight))
+
+    def add_edge(self, image_id1: int, image_id2: int, weight: float) -> None:
+        """
+            Add edge with weight between image_id1 and image_id2.
+
+            Args:
+                image_id1 (int): Image id 1.
+                image_id2 (int): Image id 2.
+                weight (float): Edge weight.
+
+            Returns:
+                None
+        """
+        self.map[image_id1].append((image_id2, weight))
+        self.map[image_id2].append((image_id1, weight))
+
+    def map_sort(self, reverse):
+        """
+            Sort image by weight.
+
+            Args:
+                reverse (bool): True for descending, false for ascending.
+
+            Returns:
+                None
+        """
+        for image_id in self.map:
+            self.map[image_id].sort(key=lambda x: x[1], reverse=reverse)
